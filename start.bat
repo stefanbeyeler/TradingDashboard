@@ -5,10 +5,10 @@ echo ========================================
 echo.
 
 REM Check if KITradingModel is running
-echo Checking if KITradingModel is running on port 8000...
-curl -s http://localhost:8000/api/v1/health >nul 2>&1
+echo Checking if KITradingModel is running on port 3011...
+curl -s http://localhost:3011/api/v1/health >nul 2>&1
 if %errorlevel% neq 0 (
-    echo [WARNING] KITradingModel not detected on port 8000
+    echo [WARNING] KITradingModel not detected on port 3011
     echo Please ensure KITradingModel is running for full functionality
     echo.
 ) else (
@@ -38,9 +38,9 @@ start "Trading Dashboard - Backend" cmd /k "cd backend && if not exist venv (pyt
 timeout /t 5 /nobreak >nul
 start "Trading Dashboard - Frontend" cmd /k "cd frontend && npm install && npm run dev"
 echo.
-echo Backend: http://localhost:8080
+echo Backend: http://localhost:3010
 echo Frontend: http://localhost:5173
-echo API Docs: http://localhost:8080/api/docs
+echo API Docs: http://localhost:3010/api/docs
 goto end
 
 :docker
@@ -49,8 +49,8 @@ echo Starting with Docker Compose...
 docker-compose up -d --build
 echo.
 echo Dashboard: http://localhost:3000
-echo API: http://localhost:8080
-echo API Docs: http://localhost:8080/api/docs
+echo API: http://localhost:3010
+echo API Docs: http://localhost:3010/api/docs
 goto end
 
 :backend

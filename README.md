@@ -37,7 +37,7 @@ TradingDashboard/
 
 | API | Zweck | Auth |
 |-----|-------|------|
-| KITradingModel | KI-Analyse & Prognosen | Lokal (Port 8000) |
+| KITradingModel | KI-Analyse & Prognosen | Lokal (Port 3011) |
 | CoinGecko | Krypto-Marktdaten | Keine (Free) |
 | Binance | Echtzeit-Ticker & Orderbook | Optional API Key |
 | Alpha Vantage | Aktien & Forex | Free Key (demo) |
@@ -49,7 +49,7 @@ TradingDashboard/
 
 - Python 3.11+
 - Node.js 20+
-- KITradingModel läuft auf Port 8000
+- KITradingModel läuft auf Port 3011
 
 ### Backend Setup
 
@@ -90,7 +90,7 @@ docker-compose logs -f
 
 ```env
 # KITradingModel
-KITRADING_API_URL=http://localhost:8000/api/v1
+KITRADING_API_URL=http://localhost:3011/api/v1
 KITRADING_TIMEOUT=120
 
 # External APIs
@@ -100,7 +100,7 @@ NEWS_API_KEY=             # Optional
 
 # Server
 HOST=0.0.0.0
-PORT=8080
+PORT=3010
 ```
 
 ## API Endpoints
@@ -146,7 +146,7 @@ PORT=8080
 ### Backend Development
 ```bash
 cd backend
-uvicorn src.main:app --reload --port 8080
+uvicorn src.main:app --reload --port 3010
 ```
 
 ### Frontend Development

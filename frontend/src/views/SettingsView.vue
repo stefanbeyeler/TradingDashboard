@@ -48,7 +48,7 @@
             <label class="text-sm text-gray-400 block mb-1">Dashboard API Port</label>
             <input
               type="text"
-              value="8080"
+              value="3010"
               disabled
               class="input bg-dark-400"
             />
@@ -196,7 +196,7 @@ const strategies = computed(() => store.kiStrategies)
 const forecastModels = computed(() => store.forecastModels)
 
 const config = {
-  kitradingUrl: 'http://localhost:8000/api/v1',
+  kitradingUrl: 'http://localhost:3011/api/v1',
 }
 
 async function refreshHealth() {
