@@ -150,7 +150,13 @@ const navItems = [
 ]
 
 const systemHealthy = computed(() => store.systemStatus?.status === 'healthy')
-const kiStatus = computed(() => store.systemStatus?.services?.kitrading || 'unknown')
+const kiStatus = computed(() => {
+  const services = store.systemStatus?.services
+  if (!services) return 'unknown'
+  // Check if all KI services are running
+  const allServicesUp = services.llm_service && services.rag_service && services.nhits_service
+  return allServicesUp ? 'healthy' : 'degraded'
+})
 const btcDominance = computed(() => store.btcDominance?.toFixed(1) || '0')
 const totalMarketCap = computed(() => store.totalMarketCap || 0)
 

@@ -122,11 +122,16 @@
         <div class="card">
           <h4 class="text-white font-semibold mb-3">Key Levels</h4>
           <div class="space-y-2">
-            <div v-for="(level, i) in recommendation.key_levels" :key="i" class="flex justify-between">
-              <span class="text-gray-400">Level {{ i + 1 }}</span>
-              <span class="text-white font-mono">{{ formatPrice(level) }}</span>
-            </div>
-            <div v-if="!recommendation.key_levels?.length" class="text-gray-500 text-sm">
+            <template v-if="typeof recommendation.key_levels === 'string'">
+              <p class="text-white text-sm">{{ recommendation.key_levels }}</p>
+            </template>
+            <template v-else-if="Array.isArray(recommendation.key_levels) && recommendation.key_levels.length">
+              <div v-for="(level, i) in recommendation.key_levels" :key="i" class="flex justify-between">
+                <span class="text-gray-400">Level {{ i + 1 }}</span>
+                <span class="text-white font-mono">{{ formatPrice(level) }}</span>
+              </div>
+            </template>
+            <div v-else class="text-gray-500 text-sm">
               No key levels identified
             </div>
           </div>
@@ -259,7 +264,9 @@ async function loadQueryLogs() {
 }
 
 function formatPrice(value) {
-  if (!value) return 'N/A'
+  if (value === null || value === undefined) return 'N/A'
+  if (typeof value === 'string') return value
+  if (typeof value !== 'number' || isNaN(value)) return 'N/A'
   if (value < 0.01) return `$${value.toFixed(6)}`
   if (value < 1) return `$${value.toFixed(4)}`
   return `$${value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`

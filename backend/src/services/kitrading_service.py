@@ -1,7 +1,7 @@
 """KITradingModel API integration service."""
 import httpx
 from typing import Optional, List, Dict, Any
-from datetime import datetime
+from datetime import datetime, timedelta
 import logging
 
 from ..config import settings
@@ -134,7 +134,27 @@ class KITradingService:
             data = response.json()
 
             predictions = []
-            if "predictions" in data:
+
+            # Handle new format: predicted_prices as array of floats
+            if "predicted_prices" in data and data["predicted_prices"]:
+                predicted_prices = data["predicted_prices"]
+                confidence_low = data.get("confidence_low", [])
+                confidence_high = data.get("confidence_high", [])
+                forecast_timestamp = datetime.fromisoformat(
+                    data["forecast_timestamp"].replace("Z", "+00:00")
+                ) if "forecast_timestamp" in data else datetime.utcnow()
+
+                for i, price in enumerate(predicted_prices):
+                    # Calculate timestamp: forecast_timestamp + i hours
+                    point_timestamp = forecast_timestamp + timedelta(hours=i + 1)
+                    predictions.append(ForecastPoint(
+                        timestamp=point_timestamp,
+                        predicted_price=price,
+                        confidence_low=confidence_low[i] if i < len(confidence_low) else None,
+                        confidence_high=confidence_high[i] if i < len(confidence_high) else None,
+                    ))
+            # Handle legacy format: predictions as list of objects
+            elif "predictions" in data:
                 for pred in data["predictions"]:
                     predictions.append(ForecastPoint(
                         timestamp=datetime.fromisoformat(pred["timestamp"].replace("Z", "+00:00"))
@@ -149,8 +169,8 @@ class KITradingService:
                 symbol=symbol,
                 current_price=data.get("current_price", 0),
                 predictions=predictions,
-                trend_probability_up=data.get("trend_probability_up"),
-                trend_probability_down=data.get("trend_probability_down"),
+                trend_probability_up=data.get("trend_up_probability", data.get("trend_probability_up")),
+                trend_probability_down=data.get("trend_down_probability", data.get("trend_probability_down")),
                 model_confidence=data.get("model_confidence"),
             )
         except Exception as e:
