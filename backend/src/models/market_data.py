@@ -112,7 +112,7 @@ class KIRecommendation(BaseModel):
     take_profit_3: Optional[float] = None
     risk_reward_ratio: Optional[float] = None
     rationale: Optional[str] = None
-    key_levels: List[float] = []
+    key_levels: Optional[str] = None  # Can be string description or None
     risks: List[str] = []
     timestamp: datetime = Field(default_factory=datetime.utcnow)
 

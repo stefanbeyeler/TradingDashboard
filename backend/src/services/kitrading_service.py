@@ -75,18 +75,32 @@ class KITradingService:
             response.raise_for_status()
             data = response.json()
 
+            # Handle key_levels - can be string or list
+            key_levels = data.get("key_levels")
+            if isinstance(key_levels, list):
+                key_levels = ", ".join(str(level) for level in key_levels) if key_levels else None
+
+            # Handle confidence - can be score (int) or text (high/medium/low)
+            confidence = data.get("confidence_score")
+            if confidence is None:
+                conf_text = data.get("confidence", "medium")
+                if isinstance(conf_text, str):
+                    confidence = {"high": 80, "medium": 60, "low": 40}.get(conf_text.lower(), 50)
+                else:
+                    confidence = conf_text if isinstance(conf_text, int) else 50
+
             return KIRecommendation(
                 symbol=symbol,
                 direction=data.get("direction", data.get("signal", "NEUTRAL")).upper(),
-                confidence_score=data.get("confidence_score", data.get("confidence", 50)),
+                confidence_score=confidence,
                 entry_price=data.get("entry_price"),
                 stop_loss=data.get("stop_loss"),
                 take_profit_1=data.get("take_profit_1"),
                 take_profit_2=data.get("take_profit_2"),
                 take_profit_3=data.get("take_profit_3"),
                 risk_reward_ratio=data.get("risk_reward_ratio"),
-                rationale=data.get("rationale", data.get("reasoning")),
-                key_levels=data.get("key_levels", []),
+                rationale=data.get("rationale", data.get("reasoning", data.get("trade_rationale"))),
+                key_levels=key_levels,
                 risks=data.get("risks", []),
             )
         except Exception as e:
