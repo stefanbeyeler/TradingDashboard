@@ -115,6 +115,8 @@ class KIRecommendation(BaseModel):
     key_levels: Optional[str] = None  # Can be string description or None
     risks: List[str] = []
     timestamp: datetime = Field(default_factory=datetime.utcnow)
+    # Technical indicators at time of analysis
+    indicators: Optional[Dict[str, Any]] = None
 
 
 class ForecastPoint(BaseModel):

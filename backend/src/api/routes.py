@@ -171,7 +171,11 @@ async def get_ki_recommendation(
             key_levels=recommendation.key_levels if isinstance(recommendation.key_levels, str) else str(recommendation.key_levels) if recommendation.key_levels else None,
             risks=recommendation.risks or [],
             strategy_id=strategy_id,
-            raw_response={"use_llm": use_llm, "timestamp": recommendation.timestamp},
+            raw_response={
+                "use_llm": use_llm,
+                "timestamp": str(recommendation.timestamp),
+                "indicators": recommendation.indicators,
+            },
         )
         await repo.create(analysis)
     except Exception as e:

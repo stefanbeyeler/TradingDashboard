@@ -85,6 +85,21 @@
           </div>
         </div>
 
+        <!-- Technical Indicators -->
+        <div v-if="recommendation.indicators && Object.keys(recommendation.indicators).length" class="mb-6">
+          <h4 class="text-gray-400 mb-3">Technical Indicators</h4>
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div
+              v-for="(value, name) in recommendation.indicators"
+              :key="name"
+              class="bg-dark-300 p-2 rounded-lg"
+            >
+              <p class="text-xs text-gray-500">{{ name }}</p>
+              <p class="text-sm font-mono text-white">{{ formatIndicatorValue(value) }}</p>
+            </div>
+          </div>
+        </div>
+
         <!-- Price Levels -->
         <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
           <div class="bg-dark-300 p-3 rounded-lg">
@@ -393,6 +408,15 @@ async function loadSavedAnalyses() {
 }
 
 function loadSavedAnalysis(analysis) {
+  // Extract indicators from raw_response if available
+  let indicators = null
+  if (analysis.raw_response) {
+    indicators = analysis.raw_response.indicators ||
+                 analysis.raw_response.technical_indicators ||
+                 (analysis.raw_response.recommendation?.indicators) ||
+                 null
+  }
+
   // Convert saved analysis to recommendation format for display
   recommendation.value = {
     symbol: analysis.symbol,
@@ -408,6 +432,7 @@ function loadSavedAnalysis(analysis) {
     key_levels: analysis.key_levels,
     risks: analysis.risks,
     timestamp: analysis.created_at,
+    indicators: indicators,
   }
   // Update form symbol to match
   form.symbol = analysis.symbol
@@ -431,6 +456,23 @@ function formatPrice(value) {
   if (value < 0.01) return `$${value.toFixed(6)}`
   if (value < 1) return `$${value.toFixed(4)}`
   return `$${value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+}
+
+function formatIndicatorValue(value) {
+  if (value === null || value === undefined) return 'N/A'
+  if (typeof value === 'string') return value
+  if (typeof value === 'object') {
+    // Handle MACD or other complex indicators
+    if (value.value !== undefined) return value.value.toFixed(2)
+    if (value.signal !== undefined) return value.signal
+    return JSON.stringify(value)
+  }
+  if (typeof value !== 'number' || isNaN(value)) return String(value)
+  // Format based on magnitude
+  if (Math.abs(value) >= 1000000) return (value / 1000000).toFixed(2) + 'M'
+  if (Math.abs(value) >= 1000) return (value / 1000).toFixed(2) + 'K'
+  if (Math.abs(value) < 0.01) return value.toFixed(6)
+  return value.toFixed(2)
 }
 
 function formatTimestamp(ts) {

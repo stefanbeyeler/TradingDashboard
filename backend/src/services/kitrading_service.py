@@ -98,6 +98,82 @@ class KITradingService:
                 else:
                     confidence = conf_text if isinstance(conf_text, int) else 50
 
+            # Extract technical indicators
+            indicators = data.get("indicators") or data.get("technical_indicators") or {}
+            if not indicators:
+                # Try to build indicators from individual fields
+                indicators = {}
+                if "rsi" in data or "RSI" in data:
+                    indicators["RSI"] = data.get("rsi") or data.get("RSI")
+                if "macd" in data or "MACD" in data:
+                    indicators["MACD"] = data.get("macd") or data.get("MACD")
+                if "sma_20" in data or "SMA_20" in data:
+                    indicators["SMA 20"] = data.get("sma_20") or data.get("SMA_20")
+                if "sma_50" in data or "SMA_50" in data:
+                    indicators["SMA 50"] = data.get("sma_50") or data.get("SMA_50")
+                if "ema_12" in data or "EMA_12" in data:
+                    indicators["EMA 12"] = data.get("ema_12") or data.get("EMA_12")
+                if "ema_26" in data or "EMA_26" in data:
+                    indicators["EMA 26"] = data.get("ema_26") or data.get("EMA_26")
+                if "atr" in data or "ATR" in data:
+                    indicators["ATR"] = data.get("atr") or data.get("ATR")
+                if "volume" in data:
+                    indicators["Volume"] = data.get("volume")
+                if "trend" in data:
+                    indicators["Trend"] = data.get("trend")
+
+            # Parse indicators from trend_analysis text if still empty
+            if not indicators:
+                import re
+                trend_analysis = data.get("trend_analysis", "")
+                key_levels_str = data.get("key_levels", "")
+
+                # Helper to safely parse float (handles trailing dots)
+                def safe_float(s):
+                    try:
+                        return float(s.rstrip('.'))
+                    except (ValueError, AttributeError):
+                        return None
+
+                # Extract RSI from trend_analysis (e.g., "RSI bei 59.7")
+                rsi_match = re.search(r'RSI\s*(?:bei|at|:)?\s*([\d.]+)', trend_analysis, re.IGNORECASE)
+                if rsi_match:
+                    val = safe_float(rsi_match.group(1))
+                    if val is not None:
+                        indicators["RSI"] = val
+
+                # Extract trend
+                trend_match = re.search(r'Trend:\s*(\w+)', trend_analysis, re.IGNORECASE)
+                if trend_match:
+                    indicators["Trend"] = trend_match.group(1).capitalize()
+
+                # Extract BB Upper/Lower from key_levels
+                bb_upper_match = re.search(r'BB Upper:\s*([\d.]+)', key_levels_str, re.IGNORECASE)
+                if bb_upper_match:
+                    val = safe_float(bb_upper_match.group(1))
+                    if val is not None:
+                        indicators["BB Upper"] = val
+
+                bb_lower_match = re.search(r'BB Lower:\s*([\d.]+)', key_levels_str, re.IGNORECASE)
+                if bb_lower_match:
+                    val = safe_float(bb_lower_match.group(1))
+                    if val is not None:
+                        indicators["BB Lower"] = val
+
+                sma200_match = re.search(r'SMA200:\s*([\d.]+)', key_levels_str, re.IGNORECASE)
+                if sma200_match:
+                    val = safe_float(sma200_match.group(1))
+                    if val is not None:
+                        indicators["SMA 200"] = val
+
+                # Extract signal type
+                if data.get("signal"):
+                    indicators["Signal"] = data.get("signal").upper()
+
+                # Extract timeframe
+                if data.get("timeframe"):
+                    indicators["Timeframe"] = data.get("timeframe")
+
             return KIRecommendation(
                 symbol=symbol,
                 direction=data.get("direction", data.get("signal", "NEUTRAL")).upper(),
@@ -111,6 +187,7 @@ class KITradingService:
                 rationale=data.get("rationale", data.get("reasoning", data.get("trade_rationale"))),
                 key_levels=key_levels,
                 risks=data.get("risks", []),
+                indicators=indicators if indicators else None,
             )
         except Exception as e:
             logger.error(f"Failed to get recommendation for {symbol}: {e}")
