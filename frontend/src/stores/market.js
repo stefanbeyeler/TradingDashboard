@@ -19,36 +19,39 @@ export const useMarketStore = defineStore('market', () => {
   const currentRecommendation = ref(null)
   const currentForecast = ref(null)
 
+  // Favorite symbols from managed symbols
+  const favoriteSymbols = ref([])
+
+  // Symbol statistics
+  const symbolStats = ref({})
+
   // Selected symbol
   const selectedSymbol = ref('BTCUSDT')
 
-  // Getters
+  // Getters - Category neutral
   const watchlistByChange = computed(() =>
     [...watchlist.value].sort((a, b) => (b.change_percent_24h || 0) - (a.change_percent_24h || 0))
   )
 
-  const topGainers = computed(() =>
-    watchlistByChange.value.filter((t) => (t.change_percent_24h || 0) > 0).slice(0, 5)
-  )
-
-  const topLosers = computed(() =>
-    watchlistByChange.value.filter((t) => (t.change_percent_24h || 0) < 0).slice(-5).reverse()
-  )
-
-  const totalMarketCap = computed(() =>
-    globalData.value?.total_market_cap?.usd || 0
-  )
-
-  const btcDominance = computed(() =>
-    globalData.value?.market_cap_percentage?.btc || 0
-  )
-
   // Actions
-  async function fetchDashboard(symbols = 'BTC,ETH,SOL,XRP,BNB,ADA,DOGE,AVAX') {
+  async function fetchDashboard(symbols = null) {
     isLoading.value = true
     error.value = null
     try {
-      const data = await api.getDashboard(symbols)
+      // If no symbols provided, try to use favorites first
+      let watchlistSymbols = symbols
+      if (!watchlistSymbols && favoriteSymbols.value.length > 0) {
+        // Extract crypto symbols from favorites (e.g., BTCUSD -> BTC)
+        watchlistSymbols = favoriteSymbols.value
+          .filter(s => s.category === 'crypto')
+          .map(s => s.symbol.replace(/USD$/, ''))
+          .join(',')
+      }
+      if (!watchlistSymbols) {
+        watchlistSymbols = 'BTC,ETH,SOL,XRP,BNB,ADA,DOGE,AVAX'
+      }
+
+      const data = await api.getDashboard(watchlistSymbols)
       watchlist.value = data.watchlist || []
       news.value = data.market_news || []
       systemStatus.value = data.system_status || {}
@@ -57,6 +60,24 @@ export const useMarketStore = defineStore('market', () => {
       console.error('Failed to fetch dashboard:', e)
     } finally {
       isLoading.value = false
+    }
+  }
+
+  async function fetchFavoriteSymbols() {
+    try {
+      const response = await api.getManagedSymbols({ favorites_only: true })
+      favoriteSymbols.value = response.data || response || []
+    } catch (e) {
+      console.error('Failed to fetch favorite symbols:', e)
+    }
+  }
+
+  async function fetchSymbolStats() {
+    try {
+      const response = await api.getSymbolStats()
+      symbolStats.value = response.data || response || {}
+    } catch (e) {
+      console.error('Failed to fetch symbol stats:', e)
     }
   }
 
@@ -175,16 +196,16 @@ export const useMarketStore = defineStore('market', () => {
     currentRecommendation,
     currentForecast,
     selectedSymbol,
+    favoriteSymbols,
+    symbolStats,
 
     // Getters
     watchlistByChange,
-    topGainers,
-    topLosers,
-    totalMarketCap,
-    btcDominance,
 
     // Actions
     fetchDashboard,
+    fetchFavoriteSymbols,
+    fetchSymbolStats,
     fetchMarkets,
     fetchGlobalData,
     fetchTrending,

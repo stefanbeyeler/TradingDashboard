@@ -53,13 +53,18 @@
         </div>
         <div class="flex items-center gap-4">
           <div class="text-right">
-            <p class="text-sm text-gray-400">BTC Dominance</p>
-            <p class="text-lg font-semibold text-white">{{ btcDominance }}%</p>
+            <p class="text-sm text-gray-400">Symbole</p>
+            <p class="text-lg font-semibold text-white">{{ symbolStats.total_symbols || 0 }}</p>
           </div>
           <div class="h-8 w-px bg-gray-700"></div>
           <div class="text-right">
-            <p class="text-sm text-gray-400">Market Cap</p>
-            <p class="text-lg font-semibold text-white">{{ formatMarketCap(totalMarketCap) }}</p>
+            <p class="text-sm text-gray-400">Favoriten</p>
+            <p class="text-lg font-semibold text-primary-400">{{ symbolStats.favorites_count || 0 }}</p>
+          </div>
+          <div class="h-8 w-px bg-gray-700"></div>
+          <div class="text-right">
+            <p class="text-sm text-gray-400">Mit NHITS</p>
+            <p class="text-lg font-semibold text-green-400">{{ symbolStats.with_nhits_model || 0 }}</p>
           </div>
         </div>
       </header>
@@ -168,20 +173,16 @@ const kiStatus = computed(() => {
   const allServicesUp = services.llm_service && services.rag_service && services.nhits_service
   return allServicesUp ? 'healthy' : 'degraded'
 })
-const btcDominance = computed(() => store.btcDominance?.toFixed(1) || '0')
-const totalMarketCap = computed(() => store.totalMarketCap || 0)
-
-function formatMarketCap(value) {
-  if (!value) return '$0'
-  if (value >= 1e12) return `$${(value / 1e12).toFixed(2)}T`
-  if (value >= 1e9) return `$${(value / 1e9).toFixed(2)}B`
-  return `$${(value / 1e6).toFixed(2)}M`
-}
+const symbolStats = computed(() => store.symbolStats || {})
 
 onMounted(async () => {
+  // Fetch symbol stats and favorites first
+  await Promise.all([
+    store.fetchSymbolStats(),
+    store.fetchFavoriteSymbols(),
+  ])
   await Promise.all([
     store.fetchDashboard(),
-    store.fetchGlobalData(),
     store.fetchKISymbols(),
   ])
 })
