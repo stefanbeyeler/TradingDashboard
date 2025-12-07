@@ -119,22 +119,120 @@
       <p v-else class="text-gray-500">No forecast models available</p>
     </div>
 
-    <!-- Watchlist Settings -->
+    <!-- Backup/Restore -->
     <div class="card">
-      <h3 class="text-lg font-semibold text-white mb-4">Default Watchlist</h3>
-      <div>
-        <label class="text-sm text-gray-400 block mb-1">Symbols (comma-separated)</label>
-        <input
-          v-model="watchlistInput"
-          type="text"
-          class="input"
-          placeholder="BTC,ETH,SOL,XRP"
-        />
-        <p class="text-xs text-gray-500 mt-1">These symbols will be shown on the dashboard</p>
+      <h3 class="text-lg font-semibold text-white mb-4">Backup & Restore</h3>
+      <p class="text-gray-400 text-sm mb-4">
+        Erstellen Sie ein Backup Ihrer Konfiguration, Watchlists, Analysen und Trade-Journal-Einträge.
+      </p>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+        <!-- Backup -->
+        <div class="bg-dark-300 rounded-lg p-4">
+          <h4 class="text-white font-medium mb-2">Backup erstellen</h4>
+          <p class="text-sm text-gray-400 mb-3">
+            Exportieren Sie alle Daten als JSON-Datei.
+          </p>
+          <button
+            @click="downloadBackup"
+            :disabled="backupLoading"
+            class="btn btn-primary w-full"
+          >
+            {{ backupLoading ? 'Erstelle Backup...' : 'Backup herunterladen' }}
+          </button>
+        </div>
+
+        <!-- Restore -->
+        <div class="bg-dark-300 rounded-lg p-4">
+          <h4 class="text-white font-medium mb-2">Backup wiederherstellen</h4>
+          <p class="text-sm text-gray-400 mb-3">
+            Importieren Sie Daten aus einer Backup-Datei.
+          </p>
+          <input
+            type="file"
+            ref="fileInput"
+            accept=".json"
+            @change="handleFileSelect"
+            class="hidden"
+          />
+          <button
+            @click="$refs.fileInput.click()"
+            :disabled="restoreLoading"
+            class="btn btn-secondary w-full"
+          >
+            {{ restoreLoading ? 'Stelle wieder her...' : 'Backup-Datei auswählen' }}
+          </button>
+        </div>
       </div>
-      <button @click="saveWatchlist" class="btn btn-primary mt-4">
-        Save Watchlist
-      </button>
+
+      <!-- Restore Options (shown when file is selected) -->
+      <div v-if="selectedBackupFile" class="bg-dark-300 rounded-lg p-4 mb-4">
+        <h4 class="text-white font-medium mb-3">Wiederherstellungsoptionen</h4>
+        <div class="text-sm text-gray-400 mb-3">
+          Datei: {{ selectedBackupFile.name }}
+          <span v-if="backupMetadata" class="ml-2">
+            ({{ formatDate(backupMetadata.created_at) }})
+          </span>
+        </div>
+
+        <div v-if="backupMetadata" class="grid grid-cols-2 md:grid-cols-3 gap-2 mb-4">
+          <label class="flex items-center gap-2 text-sm text-gray-300">
+            <input type="checkbox" v-model="restoreOptions.config" class="form-checkbox" />
+            Konfiguration ({{ backupMetadata.record_counts?.config || 0 }})
+          </label>
+          <label class="flex items-center gap-2 text-sm text-gray-300">
+            <input type="checkbox" v-model="restoreOptions.preferences" class="form-checkbox" />
+            Einstellungen ({{ backupMetadata.record_counts?.user_preferences || 0 }})
+          </label>
+          <label class="flex items-center gap-2 text-sm text-gray-300">
+            <input type="checkbox" v-model="restoreOptions.watchlists" class="form-checkbox" />
+            Watchlists ({{ backupMetadata.record_counts?.watchlists || 0 }})
+          </label>
+          <label class="flex items-center gap-2 text-sm text-gray-300">
+            <input type="checkbox" v-model="restoreOptions.alerts" class="form-checkbox" />
+            Preis-Alerts ({{ backupMetadata.record_counts?.price_alerts || 0 }})
+          </label>
+          <label class="flex items-center gap-2 text-sm text-gray-300">
+            <input type="checkbox" v-model="restoreOptions.analyses" class="form-checkbox" />
+            Analysen ({{ backupMetadata.record_counts?.trading_analyses || 0 }})
+          </label>
+          <label class="flex items-center gap-2 text-sm text-gray-300">
+            <input type="checkbox" v-model="restoreOptions.journal" class="form-checkbox" />
+            Trade Journal ({{ backupMetadata.record_counts?.trade_journal || 0 }})
+          </label>
+        </div>
+
+        <div class="flex gap-2">
+          <button
+            @click="executeRestore"
+            :disabled="restoreLoading"
+            class="btn btn-primary"
+          >
+            {{ restoreLoading ? 'Wiederherstellen...' : 'Wiederherstellen' }}
+          </button>
+          <button
+            @click="cancelRestore"
+            class="btn btn-secondary"
+          >
+            Abbrechen
+          </button>
+        </div>
+      </div>
+
+      <!-- Restore Result -->
+      <div v-if="restoreResult" class="bg-dark-300 rounded-lg p-4">
+        <h4 :class="restoreResult.success ? 'text-green-400' : 'text-red-400'" class="font-medium mb-2">
+          {{ restoreResult.success ? 'Wiederherstellung erfolgreich' : 'Wiederherstellung fehlgeschlagen' }}
+        </h4>
+        <div class="text-sm text-gray-400">
+          <div v-for="(count, key) in restoreResult.records_restored" :key="key">
+            {{ key }}: {{ count }} Einträge wiederhergestellt
+          </div>
+        </div>
+        <div v-if="restoreResult.errors?.length" class="mt-2 text-sm text-red-400">
+          <div v-for="error in restoreResult.errors" :key="error">{{ error }}</div>
+        </div>
+      </div>
     </div>
 
     <!-- About -->
@@ -183,14 +281,13 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, reactive } from 'vue'
 import { useMarketStore } from '@/stores/market'
 import * as api from '@/services/api'
 
 const store = useMarketStore()
 const loading = ref(false)
 const services = ref({})
-const watchlistInput = ref('BTC,ETH,SOL,XRP,BNB,ADA,DOGE,AVAX')
 
 const strategies = computed(() => store.kiStrategies)
 const forecastModels = computed(() => store.forecastModels)
@@ -198,6 +295,24 @@ const forecastModels = computed(() => store.forecastModels)
 const config = {
   kitradingUrl: 'http://localhost:3011/api/v1',
 }
+
+// Backup/Restore state
+const backupLoading = ref(false)
+const restoreLoading = ref(false)
+const selectedBackupFile = ref(null)
+const backupData = ref(null)
+const backupMetadata = ref(null)
+const restoreResult = ref(null)
+const fileInput = ref(null)
+
+const restoreOptions = reactive({
+  config: true,
+  preferences: true,
+  watchlists: true,
+  alerts: true,
+  analyses: true,
+  journal: true,
+})
 
 async function refreshHealth() {
   loading.value = true
@@ -211,24 +326,92 @@ async function refreshHealth() {
   }
 }
 
-function saveWatchlist() {
-  localStorage.setItem('watchlist', watchlistInput.value)
-  store.fetchDashboard(watchlistInput.value)
-}
-
 function formatDate(dateStr) {
   if (!dateStr) return ''
   const date = new Date(dateStr)
   return date.toLocaleString('de-DE')
 }
 
-onMounted(async () => {
-  // Load saved watchlist
-  const saved = localStorage.getItem('watchlist')
-  if (saved) {
-    watchlistInput.value = saved
+async function downloadBackup() {
+  backupLoading.value = true
+  try {
+    const backup = await api.createBackup()
+    const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19)
+    a.download = `trading-dashboard-backup-${timestamp}.json`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+  } catch (e) {
+    console.error('Failed to create backup:', e)
+    alert('Backup fehlgeschlagen: ' + (e.response?.data?.detail || e.message))
+  } finally {
+    backupLoading.value = false
   }
+}
 
+function handleFileSelect(event) {
+  const file = event.target.files[0]
+  if (!file) return
+
+  restoreResult.value = null
+  selectedBackupFile.value = file
+
+  const reader = new FileReader()
+  reader.onload = (e) => {
+    try {
+      const data = JSON.parse(e.target.result)
+      backupData.value = data
+      backupMetadata.value = data.metadata
+    } catch (err) {
+      alert('Ungültige Backup-Datei')
+      cancelRestore()
+    }
+  }
+  reader.readAsText(file)
+}
+
+function cancelRestore() {
+  selectedBackupFile.value = null
+  backupData.value = null
+  backupMetadata.value = null
+  if (fileInput.value) {
+    fileInput.value.value = ''
+  }
+}
+
+async function executeRestore() {
+  if (!backupData.value) return
+
+  restoreLoading.value = true
+  try {
+    const result = await api.restoreBackup(backupData.value, {
+      restoreConfig: restoreOptions.config,
+      restorePreferences: restoreOptions.preferences,
+      restoreWatchlists: restoreOptions.watchlists,
+      restoreAlerts: restoreOptions.alerts,
+      restoreAnalyses: restoreOptions.analyses,
+      restoreJournal: restoreOptions.journal,
+    })
+    restoreResult.value = result
+    cancelRestore()
+  } catch (e) {
+    console.error('Failed to restore backup:', e)
+    restoreResult.value = {
+      success: false,
+      records_restored: {},
+      errors: [e.response?.data?.detail || e.message],
+    }
+  } finally {
+    restoreLoading.value = false
+  }
+}
+
+onMounted(async () => {
   await Promise.all([
     refreshHealth(),
     store.fetchKIStrategies(),

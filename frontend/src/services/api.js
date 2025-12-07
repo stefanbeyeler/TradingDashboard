@@ -107,4 +107,18 @@ export const deleteSymbol = (symbolId) => api.delete(`/symbols/${symbolId}`)
 export const toggleSymbolFavorite = (symbolId) => api.post(`/symbols/${symbolId}/favorite`)
 export const refreshSymbol = (symbolId) => api.post(`/symbols/${symbolId}/refresh`)
 
+// Backup/Restore
+export const createBackup = () => api.get('/backup')
+export const restoreBackup = (backupData, options = {}) =>
+  api.post('/restore', {
+    backup: backupData,
+    restore_config: options.restoreConfig ?? true,
+    restore_preferences: options.restorePreferences ?? true,
+    restore_watchlists: options.restoreWatchlists ?? true,
+    restore_alerts: options.restoreAlerts ?? true,
+    restore_analyses: options.restoreAnalyses ?? true,
+    restore_journal: options.restoreJournal ?? true,
+    clear_existing: options.clearExisting ?? false,
+  })
+
 export default api

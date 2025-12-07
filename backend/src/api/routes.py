@@ -1,7 +1,9 @@
 """API routes for TradingDashboard."""
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Depends
 from typing import Optional, List, Dict, Any
 from datetime import datetime
+from uuid import UUID
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..services import (
     kitrading_service,
@@ -26,6 +28,48 @@ from ..models import (
     SymbolStats,
     SymbolCategory,
     SymbolStatus,
+)
+from ..db import (
+    get_db,
+    ConfigRepository,
+    UserPreferencesRepository,
+    TradingAnalysisRepository,
+    PriceForecastRepository,
+    WatchlistRepository,
+    PriceAlertRepository,
+    TradeJournalRepository,
+    TradingAnalysis,
+    PriceForecast,
+    Watchlist,
+    WatchlistItem,
+    PriceAlert,
+    TradeJournalEntry,
+    UserPreferences,
+    ConfigValueRequest,
+    ConfigListResponse,
+    UserPreferencesRequest,
+    UserPreferencesResponse,
+    TradingAnalysisCreate,
+    TradingAnalysisResponse,
+    TradingAnalysisListResponse,
+    PriceForecastCreate,
+    PriceForecastResponse,
+    WatchlistCreate,
+    WatchlistUpdate,
+    WatchlistItemAdd,
+    WatchlistItemResponse,
+    WatchlistResponse,
+    PriceAlertCreate,
+    PriceAlertResponse,
+    TradeJournalCreate,
+    TradeJournalUpdate,
+    TradeJournalClose,
+    TradeJournalResponse,
+    TradeStatisticsResponse,
+    BackupMetadata,
+    BackupData,
+    RestoreRequest,
+    RestoreResult,
 )
 
 router = APIRouter()
@@ -474,3 +518,722 @@ async def get_combined_news(
 ) -> List[MarketNews]:
     """Get combined news from all sources."""
     return await news_service.get_combined_news(limit)
+
+
+# ============================================================================
+# Configuration (PostgreSQL)
+# ============================================================================
+
+@router.get("/config")
+async def get_all_config(db: AsyncSession = Depends(get_db)) -> ConfigListResponse:
+    """Get all configuration values."""
+    repo = ConfigRepository(db)
+    configs = await repo.get_all()
+    return ConfigListResponse(configs=configs)
+
+
+@router.get("/config/{key}")
+async def get_config(key: str, db: AsyncSession = Depends(get_db)) -> Dict[str, Any]:
+    """Get a specific configuration value."""
+    repo = ConfigRepository(db)
+    value = await repo.get(key)
+    if value is None:
+        raise HTTPException(status_code=404, detail=f"Config key '{key}' not found")
+    return {"key": key, "value": value}
+
+
+@router.put("/config/{key}")
+async def set_config(
+    key: str,
+    request: ConfigValueRequest,
+    db: AsyncSession = Depends(get_db)
+) -> Dict[str, Any]:
+    """Set a configuration value."""
+    repo = ConfigRepository(db)
+    await repo.set(key, request.value, request.description)
+    return {"key": key, "value": request.value, "status": "saved"}
+
+
+@router.delete("/config/{key}")
+async def delete_config(key: str, db: AsyncSession = Depends(get_db)) -> Dict[str, str]:
+    """Delete a configuration value."""
+    repo = ConfigRepository(db)
+    deleted = await repo.delete(key)
+    if not deleted:
+        raise HTTPException(status_code=404, detail=f"Config key '{key}' not found")
+    return {"status": "deleted", "key": key}
+
+
+# ============================================================================
+# User Preferences (PostgreSQL)
+# ============================================================================
+
+@router.get("/preferences", response_model=UserPreferencesResponse)
+async def get_preferences(
+    user_id: str = Query("default"),
+    db: AsyncSession = Depends(get_db)
+):
+    """Get user preferences."""
+    repo = UserPreferencesRepository(db)
+    prefs = await repo.get(user_id)
+    if not prefs:
+        # Create default preferences
+        prefs = UserPreferences(user_id=user_id)
+        prefs = await repo.save(prefs)
+    return prefs
+
+
+@router.put("/preferences", response_model=UserPreferencesResponse)
+async def update_preferences(
+    request: UserPreferencesRequest,
+    user_id: str = Query("default"),
+    db: AsyncSession = Depends(get_db)
+):
+    """Update user preferences."""
+    repo = UserPreferencesRepository(db)
+    updates = request.model_dump(exclude_unset=True)
+    prefs = await repo.update(user_id, updates)
+    if not prefs:
+        # Create with updates
+        prefs = UserPreferences(user_id=user_id, **updates)
+        prefs = await repo.save(prefs)
+    return prefs
+
+
+# ============================================================================
+# Trading Analyses (PostgreSQL)
+# ============================================================================
+
+@router.get("/analyses", response_model=TradingAnalysisListResponse)
+async def get_analyses(
+    symbol: Optional[str] = None,
+    analysis_type: Optional[str] = None,
+    favorites_only: bool = False,
+    limit: int = Query(20, ge=1, le=100),
+    db: AsyncSession = Depends(get_db)
+):
+    """Get saved trading analyses."""
+    repo = TradingAnalysisRepository(db)
+    if symbol:
+        analyses = await repo.get_by_symbol(symbol, limit, analysis_type)
+    else:
+        analyses = await repo.get_recent(limit, analysis_type, favorites_only)
+    return TradingAnalysisListResponse(analyses=analyses, total=len(analyses))
+
+
+@router.post("/analyses", response_model=TradingAnalysisResponse)
+async def save_analysis(
+    request: TradingAnalysisCreate,
+    db: AsyncSession = Depends(get_db)
+):
+    """Save a new trading analysis."""
+    repo = TradingAnalysisRepository(db)
+    analysis = TradingAnalysis(**request.model_dump())
+    saved = await repo.create(analysis)
+    return saved
+
+
+@router.get("/analyses/{analysis_id}", response_model=TradingAnalysisResponse)
+async def get_analysis(analysis_id: UUID, db: AsyncSession = Depends(get_db)):
+    """Get a specific trading analysis."""
+    repo = TradingAnalysisRepository(db)
+    analysis = await repo.get(analysis_id)
+    if not analysis:
+        raise HTTPException(status_code=404, detail="Analysis not found")
+    return analysis
+
+
+@router.post("/analyses/{analysis_id}/favorite", response_model=TradingAnalysisResponse)
+async def toggle_analysis_favorite(analysis_id: UUID, db: AsyncSession = Depends(get_db)):
+    """Toggle favorite status for an analysis."""
+    repo = TradingAnalysisRepository(db)
+    analysis = await repo.toggle_favorite(analysis_id)
+    if not analysis:
+        raise HTTPException(status_code=404, detail="Analysis not found")
+    return analysis
+
+
+@router.delete("/analyses/{analysis_id}")
+async def delete_analysis(analysis_id: UUID, db: AsyncSession = Depends(get_db)):
+    """Delete a trading analysis."""
+    repo = TradingAnalysisRepository(db)
+    deleted = await repo.delete(analysis_id)
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Analysis not found")
+    return {"status": "deleted", "id": str(analysis_id)}
+
+
+# ============================================================================
+# Price Forecasts (PostgreSQL)
+# ============================================================================
+
+@router.get("/forecasts/{symbol}", response_model=List[PriceForecastResponse])
+async def get_forecasts(
+    symbol: str,
+    limit: int = Query(10, ge=1, le=50),
+    db: AsyncSession = Depends(get_db)
+):
+    """Get saved price forecasts for a symbol."""
+    repo = PriceForecastRepository(db)
+    forecasts = await repo.get_by_symbol(symbol, limit)
+    return forecasts
+
+
+@router.post("/forecasts", response_model=PriceForecastResponse)
+async def save_forecast(
+    request: PriceForecastCreate,
+    db: AsyncSession = Depends(get_db)
+):
+    """Save a new price forecast."""
+    repo = PriceForecastRepository(db)
+    forecast = PriceForecast(
+        symbol=request.symbol,
+        current_price=request.current_price,
+        horizon=request.horizon,
+        model_type=request.model_type,
+        predictions=[p.model_dump() for p in request.predictions],
+        trend_probability_up=request.trend_probability_up,
+        trend_probability_down=request.trend_probability_down,
+        model_confidence=request.model_confidence,
+        raw_response=request.raw_response,
+    )
+    saved = await repo.create(forecast)
+    return saved
+
+
+# ============================================================================
+# Watchlists (PostgreSQL)
+# ============================================================================
+
+@router.get("/watchlists", response_model=List[WatchlistResponse])
+async def get_watchlists(db: AsyncSession = Depends(get_db)):
+    """Get all watchlists."""
+    repo = WatchlistRepository(db)
+    watchlists = await repo.get_all()
+    # Load items for each watchlist
+    for wl in watchlists:
+        wl.items = await repo.get_items(wl.id)
+    return watchlists
+
+
+@router.post("/watchlists", response_model=WatchlistResponse)
+async def create_watchlist(
+    request: WatchlistCreate,
+    db: AsyncSession = Depends(get_db)
+):
+    """Create a new watchlist."""
+    repo = WatchlistRepository(db)
+    watchlist = Watchlist(**request.model_dump())
+    saved = await repo.create(watchlist)
+    saved.items = []
+    return saved
+
+
+@router.get("/watchlists/{watchlist_id}", response_model=WatchlistResponse)
+async def get_watchlist(watchlist_id: UUID, db: AsyncSession = Depends(get_db)):
+    """Get a specific watchlist with items."""
+    repo = WatchlistRepository(db)
+    watchlist = await repo.get(watchlist_id)
+    if not watchlist:
+        raise HTTPException(status_code=404, detail="Watchlist not found")
+    watchlist.items = await repo.get_items(watchlist_id)
+    return watchlist
+
+
+@router.put("/watchlists/{watchlist_id}", response_model=WatchlistResponse)
+async def update_watchlist(
+    watchlist_id: UUID,
+    request: WatchlistUpdate,
+    db: AsyncSession = Depends(get_db)
+):
+    """Update a watchlist."""
+    repo = WatchlistRepository(db)
+    watchlist = await repo.get(watchlist_id)
+    if not watchlist:
+        raise HTTPException(status_code=404, detail="Watchlist not found")
+    for key, value in request.model_dump(exclude_unset=True).items():
+        setattr(watchlist, key, value)
+    watchlist.items = await repo.get_items(watchlist_id)
+    return watchlist
+
+
+@router.delete("/watchlists/{watchlist_id}")
+async def delete_watchlist(watchlist_id: UUID, db: AsyncSession = Depends(get_db)):
+    """Delete a watchlist."""
+    repo = WatchlistRepository(db)
+    deleted = await repo.delete(watchlist_id)
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Watchlist not found")
+    return {"status": "deleted", "id": str(watchlist_id)}
+
+
+@router.post("/watchlists/{watchlist_id}/symbols", response_model=WatchlistItemResponse)
+async def add_watchlist_symbol(
+    watchlist_id: UUID,
+    request: WatchlistItemAdd,
+    db: AsyncSession = Depends(get_db)
+):
+    """Add a symbol to a watchlist."""
+    repo = WatchlistRepository(db)
+    watchlist = await repo.get(watchlist_id)
+    if not watchlist:
+        raise HTTPException(status_code=404, detail="Watchlist not found")
+    item = await repo.add_symbol(watchlist_id, request.symbol, request.notes)
+    return item
+
+
+@router.delete("/watchlists/{watchlist_id}/symbols/{symbol}")
+async def remove_watchlist_symbol(
+    watchlist_id: UUID,
+    symbol: str,
+    db: AsyncSession = Depends(get_db)
+):
+    """Remove a symbol from a watchlist."""
+    repo = WatchlistRepository(db)
+    removed = await repo.remove_symbol(watchlist_id, symbol)
+    if not removed:
+        raise HTTPException(status_code=404, detail="Symbol not in watchlist")
+    return {"status": "removed", "symbol": symbol}
+
+
+# ============================================================================
+# Price Alerts (PostgreSQL)
+# ============================================================================
+
+@router.get("/alerts", response_model=List[PriceAlertResponse])
+async def get_alerts(
+    symbol: Optional[str] = None,
+    active_only: bool = True,
+    db: AsyncSession = Depends(get_db)
+):
+    """Get price alerts."""
+    repo = PriceAlertRepository(db)
+    if active_only:
+        alerts = await repo.get_active(symbol)
+    else:
+        # Would need to add get_all method for this
+        alerts = await repo.get_active(symbol)
+    return alerts
+
+
+@router.post("/alerts", response_model=PriceAlertResponse)
+async def create_alert(
+    request: PriceAlertCreate,
+    db: AsyncSession = Depends(get_db)
+):
+    """Create a new price alert."""
+    repo = PriceAlertRepository(db)
+    alert = PriceAlert(**request.model_dump())
+    saved = await repo.create(alert)
+    return saved
+
+
+@router.delete("/alerts/{alert_id}")
+async def delete_alert(alert_id: UUID, db: AsyncSession = Depends(get_db)):
+    """Delete a price alert."""
+    repo = PriceAlertRepository(db)
+    deleted = await repo.delete(alert_id)
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Alert not found")
+    return {"status": "deleted", "id": str(alert_id)}
+
+
+# ============================================================================
+# Trade Journal (PostgreSQL)
+# ============================================================================
+
+@router.get("/journal", response_model=List[TradeJournalResponse])
+async def get_journal_entries(
+    symbol: Optional[str] = None,
+    status: Optional[str] = None,
+    limit: int = Query(20, ge=1, le=100),
+    db: AsyncSession = Depends(get_db)
+):
+    """Get trade journal entries."""
+    repo = TradeJournalRepository(db)
+    if symbol:
+        entries = await repo.get_by_symbol(symbol, status, limit)
+    elif status == "open":
+        entries = await repo.get_open_trades()
+    else:
+        entries = await repo.get_by_symbol("", status, limit)
+    return entries
+
+
+@router.post("/journal", response_model=TradeJournalResponse)
+async def create_journal_entry(
+    request: TradeJournalCreate,
+    db: AsyncSession = Depends(get_db)
+):
+    """Create a new trade journal entry."""
+    repo = TradeJournalRepository(db)
+    entry = TradeJournalEntry(**request.model_dump())
+    saved = await repo.create(entry)
+    return saved
+
+
+@router.get("/journal/statistics", response_model=TradeStatisticsResponse)
+async def get_journal_statistics(db: AsyncSession = Depends(get_db)):
+    """Get trading statistics from journal."""
+    repo = TradeJournalRepository(db)
+    stats = await repo.get_statistics()
+    return stats
+
+
+@router.get("/journal/{entry_id}", response_model=TradeJournalResponse)
+async def get_journal_entry(entry_id: UUID, db: AsyncSession = Depends(get_db)):
+    """Get a specific journal entry."""
+    repo = TradeJournalRepository(db)
+    entry = await repo.get(entry_id)
+    if not entry:
+        raise HTTPException(status_code=404, detail="Journal entry not found")
+    return entry
+
+
+@router.put("/journal/{entry_id}", response_model=TradeJournalResponse)
+async def update_journal_entry(
+    entry_id: UUID,
+    request: TradeJournalUpdate,
+    db: AsyncSession = Depends(get_db)
+):
+    """Update a trade journal entry."""
+    repo = TradeJournalRepository(db)
+    entry = await repo.get(entry_id)
+    if not entry:
+        raise HTTPException(status_code=404, detail="Journal entry not found")
+    for key, value in request.model_dump(exclude_unset=True).items():
+        setattr(entry, key, value)
+    return entry
+
+
+@router.post("/journal/{entry_id}/close", response_model=TradeJournalResponse)
+async def close_trade(
+    entry_id: UUID,
+    request: TradeJournalClose,
+    db: AsyncSession = Depends(get_db)
+):
+    """Close an open trade."""
+    repo = TradeJournalRepository(db)
+    entry = await repo.close_trade(entry_id, request.exit_price, request.exit_reason)
+    if not entry:
+        raise HTTPException(status_code=404, detail="Journal entry not found or already closed")
+    return entry
+
+
+@router.delete("/journal/{entry_id}")
+async def delete_journal_entry(entry_id: UUID, db: AsyncSession = Depends(get_db)):
+    """Delete a journal entry."""
+    repo = TradeJournalRepository(db)
+    deleted = await repo.delete(entry_id)
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Journal entry not found")
+    return {"status": "deleted", "id": str(entry_id)}
+
+
+# ============================================================================
+# Backup/Restore (PostgreSQL)
+# ============================================================================
+
+@router.get("/backup", response_model=BackupData)
+async def create_backup(db: AsyncSession = Depends(get_db)):
+    """Create a full backup of all configuration and data."""
+    config_repo = ConfigRepository(db)
+    prefs_repo = UserPreferencesRepository(db)
+    watchlist_repo = WatchlistRepository(db)
+    alert_repo = PriceAlertRepository(db)
+    analysis_repo = TradingAnalysisRepository(db)
+    journal_repo = TradeJournalRepository(db)
+
+    # Gather all data
+    config = await config_repo.get_all()
+
+    # Get user preferences
+    prefs = await prefs_repo.get("default")
+    user_preferences = []
+    if prefs:
+        user_preferences.append({
+            "id": str(prefs.id),
+            "user_id": prefs.user_id,
+            "theme": prefs.theme,
+            "language": prefs.language,
+            "default_timeframe": prefs.default_timeframe,
+            "default_symbol": prefs.default_symbol,
+            "notifications_enabled": prefs.notifications_enabled,
+            "auto_refresh_interval": prefs.auto_refresh_interval,
+            "chart_settings": prefs.chart_settings,
+            "dashboard_layout": prefs.dashboard_layout,
+        })
+
+    # Get watchlists with items
+    watchlists_raw = await watchlist_repo.get_all()
+    watchlists = []
+    for wl in watchlists_raw:
+        items = await watchlist_repo.get_items(wl.id)
+        watchlists.append({
+            "id": str(wl.id),
+            "name": wl.name,
+            "description": wl.description,
+            "is_default": wl.is_default,
+            "sort_order": wl.sort_order,
+            "items": [
+                {
+                    "id": str(item.id),
+                    "symbol": item.symbol,
+                    "sort_order": item.sort_order,
+                    "notes": item.notes,
+                    "alert_price_above": item.alert_price_above,
+                    "alert_price_below": item.alert_price_below,
+                }
+                for item in items
+            ]
+        })
+
+    # Get price alerts
+    alerts_raw = await alert_repo.get_active()
+    price_alerts = [
+        {
+            "id": str(alert.id),
+            "symbol": alert.symbol,
+            "alert_type": alert.alert_type,
+            "target_value": alert.target_value,
+            "notes": alert.notes,
+            "is_active": alert.is_active,
+        }
+        for alert in alerts_raw
+    ]
+
+    # Get trading analyses (last 100)
+    analyses_raw = await analysis_repo.get_recent(100)
+    trading_analyses = [
+        {
+            "id": str(a.id),
+            "symbol": a.symbol,
+            "timeframe": a.timeframe,
+            "analysis_type": a.analysis_type,
+            "direction": a.direction,
+            "confidence_score": a.confidence_score,
+            "entry_price": a.entry_price,
+            "stop_loss": a.stop_loss,
+            "take_profit_1": a.take_profit_1,
+            "take_profit_2": a.take_profit_2,
+            "take_profit_3": a.take_profit_3,
+            "risk_reward_ratio": a.risk_reward_ratio,
+            "rationale": a.rationale,
+            "key_levels": a.key_levels,
+            "risks": a.risks,
+            "strategy_id": a.strategy_id,
+            "is_favorite": a.is_favorite,
+            "tags": a.tags,
+            "notes": a.notes,
+            "created_at": a.created_at.isoformat() if a.created_at else None,
+        }
+        for a in analyses_raw
+    ]
+
+    # Get trade journal entries (last 100)
+    journal_raw = await journal_repo.get_by_symbol("", None, 100)
+    trade_journal = [
+        {
+            "id": str(j.id),
+            "symbol": j.symbol,
+            "direction": j.direction,
+            "entry_price": j.entry_price,
+            "exit_price": j.exit_price,
+            "position_size": j.position_size,
+            "stop_loss": j.stop_loss,
+            "take_profit": j.take_profit,
+            "pnl": j.pnl,
+            "pnl_percent": j.pnl_percent,
+            "status": j.status,
+            "entry_reason": j.entry_reason,
+            "exit_reason": j.exit_reason,
+            "analysis_id": str(j.analysis_id) if j.analysis_id else None,
+            "lessons_learned": j.lessons_learned,
+            "tags": j.tags,
+            "entry_time": j.entry_time.isoformat() if j.entry_time else None,
+            "exit_time": j.exit_time.isoformat() if j.exit_time else None,
+        }
+        for j in journal_raw
+    ]
+
+    # Build backup
+    metadata = BackupMetadata(
+        version="1.0",
+        created_at=datetime.utcnow(),
+        tables_included=["config", "user_preferences", "watchlists", "price_alerts", "trading_analyses", "trade_journal"],
+        record_counts={
+            "config": len(config),
+            "user_preferences": len(user_preferences),
+            "watchlists": len(watchlists),
+            "price_alerts": len(price_alerts),
+            "trading_analyses": len(trading_analyses),
+            "trade_journal": len(trade_journal),
+        }
+    )
+
+    return BackupData(
+        metadata=metadata,
+        config=config,
+        user_preferences=user_preferences,
+        watchlists=watchlists,
+        price_alerts=price_alerts,
+        trading_analyses=trading_analyses,
+        trade_journal=trade_journal,
+    )
+
+
+@router.post("/restore", response_model=RestoreResult)
+async def restore_backup(
+    request: RestoreRequest,
+    db: AsyncSession = Depends(get_db)
+):
+    """Restore data from a backup."""
+    errors = []
+    records_restored = {
+        "config": 0,
+        "user_preferences": 0,
+        "watchlists": 0,
+        "price_alerts": 0,
+        "trading_analyses": 0,
+        "trade_journal": 0,
+    }
+
+    backup = request.backup
+
+    try:
+        # Restore config
+        if request.restore_config and backup.config:
+            config_repo = ConfigRepository(db)
+            for key, value in backup.config.items():
+                try:
+                    await config_repo.set(key, value)
+                    records_restored["config"] += 1
+                except Exception as e:
+                    errors.append(f"Config '{key}': {str(e)}")
+
+        # Restore user preferences
+        if request.restore_preferences and backup.user_preferences:
+            prefs_repo = UserPreferencesRepository(db)
+            for pref_data in backup.user_preferences:
+                try:
+                    user_id = pref_data.get("user_id", "default")
+                    updates = {k: v for k, v in pref_data.items() if k not in ["id", "user_id", "created_at", "updated_at"]}
+                    existing = await prefs_repo.get(user_id)
+                    if existing:
+                        await prefs_repo.update(user_id, updates)
+                    else:
+                        new_prefs = UserPreferences(user_id=user_id, **updates)
+                        await prefs_repo.save(new_prefs)
+                    records_restored["user_preferences"] += 1
+                except Exception as e:
+                    errors.append(f"User preferences: {str(e)}")
+
+        # Restore watchlists
+        if request.restore_watchlists and backup.watchlists:
+            watchlist_repo = WatchlistRepository(db)
+            for wl_data in backup.watchlists:
+                try:
+                    wl = Watchlist(
+                        name=wl_data["name"],
+                        description=wl_data.get("description"),
+                        is_default=wl_data.get("is_default", False),
+                        sort_order=wl_data.get("sort_order", 0),
+                    )
+                    saved_wl = await watchlist_repo.create(wl)
+                    records_restored["watchlists"] += 1
+
+                    # Add items
+                    for item_data in wl_data.get("items", []):
+                        await watchlist_repo.add_symbol(
+                            saved_wl.id,
+                            item_data["symbol"],
+                            item_data.get("notes"),
+                        )
+                except Exception as e:
+                    errors.append(f"Watchlist '{wl_data.get('name', 'unknown')}': {str(e)}")
+
+        # Restore price alerts
+        if request.restore_alerts and backup.price_alerts:
+            alert_repo = PriceAlertRepository(db)
+            for alert_data in backup.price_alerts:
+                try:
+                    alert = PriceAlert(
+                        symbol=alert_data["symbol"],
+                        alert_type=alert_data["alert_type"],
+                        target_value=alert_data["target_value"],
+                        notes=alert_data.get("notes"),
+                        is_active=alert_data.get("is_active", True),
+                    )
+                    await alert_repo.create(alert)
+                    records_restored["price_alerts"] += 1
+                except Exception as e:
+                    errors.append(f"Price alert: {str(e)}")
+
+        # Restore trading analyses
+        if request.restore_analyses and backup.trading_analyses:
+            analysis_repo = TradingAnalysisRepository(db)
+            for a_data in backup.trading_analyses:
+                try:
+                    analysis = TradingAnalysis(
+                        symbol=a_data["symbol"],
+                        timeframe=a_data.get("timeframe", "1h"),
+                        analysis_type=a_data.get("analysis_type", "ki_recommendation"),
+                        direction=a_data.get("direction"),
+                        confidence_score=a_data.get("confidence_score"),
+                        entry_price=a_data.get("entry_price"),
+                        stop_loss=a_data.get("stop_loss"),
+                        take_profit_1=a_data.get("take_profit_1"),
+                        take_profit_2=a_data.get("take_profit_2"),
+                        take_profit_3=a_data.get("take_profit_3"),
+                        risk_reward_ratio=a_data.get("risk_reward_ratio"),
+                        rationale=a_data.get("rationale"),
+                        key_levels=a_data.get("key_levels"),
+                        risks=a_data.get("risks", []),
+                        strategy_id=a_data.get("strategy_id"),
+                        is_favorite=a_data.get("is_favorite", False),
+                        tags=a_data.get("tags", []),
+                        notes=a_data.get("notes"),
+                    )
+                    await analysis_repo.create(analysis)
+                    records_restored["trading_analyses"] += 1
+                except Exception as e:
+                    errors.append(f"Trading analysis: {str(e)}")
+
+        # Restore trade journal
+        if request.restore_journal and backup.trade_journal:
+            journal_repo = TradeJournalRepository(db)
+            for j_data in backup.trade_journal:
+                try:
+                    entry = TradeJournalEntry(
+                        symbol=j_data["symbol"],
+                        direction=j_data["direction"],
+                        entry_price=j_data["entry_price"],
+                        exit_price=j_data.get("exit_price"),
+                        position_size=j_data.get("position_size"),
+                        stop_loss=j_data.get("stop_loss"),
+                        take_profit=j_data.get("take_profit"),
+                        pnl=j_data.get("pnl"),
+                        pnl_percent=j_data.get("pnl_percent"),
+                        status=j_data.get("status", "open"),
+                        entry_reason=j_data.get("entry_reason"),
+                        exit_reason=j_data.get("exit_reason"),
+                        lessons_learned=j_data.get("lessons_learned"),
+                        tags=j_data.get("tags", []),
+                    )
+                    await journal_repo.create(entry)
+                    records_restored["trade_journal"] += 1
+                except Exception as e:
+                    errors.append(f"Trade journal entry: {str(e)}")
+
+        return RestoreResult(
+            success=len(errors) == 0,
+            records_restored=records_restored,
+            errors=errors,
+        )
+
+    except Exception as e:
+        return RestoreResult(
+            success=False,
+            records_restored=records_restored,
+            errors=[f"Restore failed: {str(e)}"],
+        )
