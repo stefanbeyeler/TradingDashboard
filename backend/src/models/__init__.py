@@ -14,6 +14,13 @@ from .market_data import (
     ForecastPoint,
     KIForecast,
     DashboardData,
+    SymbolCategory,
+    SymbolStatus,
+    ManagedSymbol,
+    SymbolCreateRequest,
+    SymbolUpdateRequest,
+    SymbolImportResult,
+    SymbolStats,
 )
 
 __all__ = [
@@ -31,4 +38,11 @@ __all__ = [
     "ForecastPoint",
     "KIForecast",
     "DashboardData",
+    "SymbolCategory",
+    "SymbolStatus",
+    "ManagedSymbol",
+    "SymbolCreateRequest",
+    "SymbolUpdateRequest",
+    "SymbolImportResult",
+    "SymbolStats",
 ]

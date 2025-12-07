@@ -5,7 +5,16 @@ from datetime import datetime, timedelta
 import logging
 
 from ..config import settings
-from ..models import KIRecommendation, KIForecast, ForecastPoint
+from ..models import (
+    KIRecommendation,
+    KIForecast,
+    ForecastPoint,
+    ManagedSymbol,
+    SymbolImportResult,
+    SymbolStats,
+    SymbolCategory,
+    SymbolStatus,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -263,6 +272,141 @@ class KITradingService:
         except Exception as e:
             logger.error(f"Failed to get query logs: {e}")
             return {"logs": [], "total": 0}
+
+    # ==================== Symbol Management ====================
+
+    async def get_managed_symbols(
+        self,
+        category: Optional[str] = None,
+        status: Optional[str] = None,
+        favorites_only: bool = False,
+        with_data_only: bool = False,
+    ) -> List[ManagedSymbol]:
+        """Get all managed symbols with optional filtering."""
+        try:
+            client = await self._get_client()
+            params = {}
+            if category:
+                params["category"] = category
+            if status:
+                params["status"] = status
+            if favorites_only:
+                params["favorites_only"] = "true"
+            if with_data_only:
+                params["with_data_only"] = "true"
+
+            response = await client.get("/managed-symbols", params=params)
+            response.raise_for_status()
+            data = response.json()
+
+            return [ManagedSymbol(**s) for s in data]
+        except Exception as e:
+            logger.error(f"Failed to get managed symbols: {e}")
+            return []
+
+    async def get_symbol_stats(self) -> Optional[SymbolStats]:
+        """Get statistics about managed symbols."""
+        try:
+            client = await self._get_client()
+            response = await client.get("/managed-symbols/stats")
+            response.raise_for_status()
+            return SymbolStats(**response.json())
+        except Exception as e:
+            logger.error(f"Failed to get symbol stats: {e}")
+            return None
+
+    async def search_symbols(self, query: str, limit: int = 20) -> Dict[str, Any]:
+        """Search managed symbols."""
+        try:
+            client = await self._get_client()
+            response = await client.get(
+                "/managed-symbols/search",
+                params={"query": query, "limit": limit}
+            )
+            response.raise_for_status()
+            return response.json()
+        except Exception as e:
+            logger.error(f"Failed to search symbols: {e}")
+            return {"query": query, "count": 0, "symbols": []}
+
+    async def import_symbols(self) -> Optional[SymbolImportResult]:
+        """Import all symbols from TimescaleDB."""
+        try:
+            client = await self._get_client()
+            response = await client.post("/managed-symbols/import")
+            response.raise_for_status()
+            return SymbolImportResult(**response.json())
+        except Exception as e:
+            logger.error(f"Failed to import symbols: {e}")
+            return None
+
+    async def get_managed_symbol(self, symbol_id: str) -> Optional[ManagedSymbol]:
+        """Get a specific managed symbol."""
+        try:
+            client = await self._get_client()
+            response = await client.get(f"/managed-symbols/{symbol_id}")
+            response.raise_for_status()
+            return ManagedSymbol(**response.json())
+        except Exception as e:
+            logger.error(f"Failed to get symbol {symbol_id}: {e}")
+            return None
+
+    async def create_symbol(self, data: Dict[str, Any]) -> Optional[ManagedSymbol]:
+        """Create a new managed symbol."""
+        try:
+            client = await self._get_client()
+            response = await client.post("/managed-symbols", json=data)
+            response.raise_for_status()
+            return ManagedSymbol(**response.json())
+        except Exception as e:
+            logger.error(f"Failed to create symbol: {e}")
+            return None
+
+    async def update_symbol(
+        self, symbol_id: str, data: Dict[str, Any]
+    ) -> Optional[ManagedSymbol]:
+        """Update an existing managed symbol."""
+        try:
+            client = await self._get_client()
+            response = await client.put(f"/managed-symbols/{symbol_id}", json=data)
+            response.raise_for_status()
+            return ManagedSymbol(**response.json())
+        except Exception as e:
+            logger.error(f"Failed to update symbol {symbol_id}: {e}")
+            return None
+
+    async def delete_symbol(self, symbol_id: str) -> bool:
+        """Delete a managed symbol."""
+        try:
+            client = await self._get_client()
+            response = await client.delete(f"/managed-symbols/{symbol_id}")
+            response.raise_for_status()
+            return True
+        except Exception as e:
+            logger.error(f"Failed to delete symbol {symbol_id}: {e}")
+            return False
+
+    async def toggle_favorite(self, symbol_id: str) -> Optional[ManagedSymbol]:
+        """Toggle favorite status for a symbol."""
+        try:
+            client = await self._get_client()
+            response = await client.post(f"/managed-symbols/{symbol_id}/favorite")
+            response.raise_for_status()
+            return ManagedSymbol(**response.json())
+        except Exception as e:
+            logger.error(f"Failed to toggle favorite for {symbol_id}: {e}")
+            return None
+
+    async def refresh_symbol(self, symbol_id: str) -> Optional[ManagedSymbol]:
+        """Refresh TimescaleDB data for a symbol."""
+        try:
+            client = await self._get_client()
+            response = await client.post(f"/managed-symbols/{symbol_id}/refresh")
+            response.raise_for_status()
+            return ManagedSymbol(**response.json())
+        except Exception as e:
+            logger.error(f"Failed to refresh symbol {symbol_id}: {e}")
+            return None
 
 
 # Singleton instance

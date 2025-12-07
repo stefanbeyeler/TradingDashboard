@@ -143,3 +143,100 @@ class DashboardData(BaseModel):
     featured_forecast: Optional[KIForecast] = None
     market_news: List[MarketNews] = []
     system_status: Dict[str, Any] = {}
+
+
+# Symbol Management Models (via KITradingModel)
+class SymbolCategory(str, Enum):
+    """Categories for trading symbols."""
+    FOREX = "forex"
+    CRYPTO = "crypto"
+    STOCK = "stock"
+    INDEX = "index"
+    COMMODITY = "commodity"
+    ETF = "etf"
+    OTHER = "other"
+
+
+class SymbolStatus(str, Enum):
+    """Status of a trading symbol."""
+    ACTIVE = "active"
+    INACTIVE = "inactive"
+    SUSPENDED = "suspended"
+
+
+class ManagedSymbol(BaseModel):
+    """A managed trading symbol with metadata."""
+    symbol: str
+    display_name: Optional[str] = None
+    category: SymbolCategory = SymbolCategory.FOREX
+    status: SymbolStatus = SymbolStatus.ACTIVE
+    description: Optional[str] = None
+    base_currency: Optional[str] = None
+    quote_currency: Optional[str] = None
+    pip_value: Optional[float] = None
+    min_lot_size: Optional[float] = 0.01
+    max_lot_size: Optional[float] = 100.0
+    has_timescaledb_data: bool = False
+    first_data_timestamp: Optional[datetime] = None
+    last_data_timestamp: Optional[datetime] = None
+    total_records: Optional[int] = None
+    has_nhits_model: bool = False
+    nhits_model_trained_at: Optional[datetime] = None
+    is_favorite: bool = False
+    notes: Optional[str] = None
+    tags: List[str] = []
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
+
+
+class SymbolCreateRequest(BaseModel):
+    """Request to create a new managed symbol."""
+    symbol: str
+    display_name: Optional[str] = None
+    category: SymbolCategory = SymbolCategory.FOREX
+    description: Optional[str] = None
+    base_currency: Optional[str] = None
+    quote_currency: Optional[str] = None
+    pip_value: Optional[float] = None
+    min_lot_size: Optional[float] = 0.01
+    max_lot_size: Optional[float] = 100.0
+    notes: Optional[str] = None
+    tags: List[str] = []
+
+
+class SymbolUpdateRequest(BaseModel):
+    """Request to update an existing managed symbol."""
+    display_name: Optional[str] = None
+    category: Optional[SymbolCategory] = None
+    status: Optional[SymbolStatus] = None
+    description: Optional[str] = None
+    base_currency: Optional[str] = None
+    quote_currency: Optional[str] = None
+    pip_value: Optional[float] = None
+    min_lot_size: Optional[float] = None
+    max_lot_size: Optional[float] = None
+    is_favorite: Optional[bool] = None
+    notes: Optional[str] = None
+    tags: Optional[List[str]] = None
+
+
+class SymbolImportResult(BaseModel):
+    """Result of importing symbols from TimescaleDB."""
+    total_found: int
+    imported: int
+    updated: int
+    skipped: int
+    errors: List[str] = []
+    symbols: List[str] = []
+
+
+class SymbolStats(BaseModel):
+    """Statistics about managed symbols."""
+    total_symbols: int
+    active_symbols: int
+    inactive_symbols: int
+    suspended_symbols: int
+    with_timescaledb_data: int
+    with_nhits_model: int
+    by_category: Dict[str, int]
+    favorites_count: int

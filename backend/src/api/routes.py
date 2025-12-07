@@ -19,6 +19,13 @@ from ..models import (
     KIForecast,
     KIAnalysisRequest,
     DashboardData,
+    ManagedSymbol,
+    SymbolCreateRequest,
+    SymbolUpdateRequest,
+    SymbolImportResult,
+    SymbolStats,
+    SymbolCategory,
+    SymbolStatus,
 )
 
 router = APIRouter()
@@ -166,6 +173,110 @@ async def get_query_logs(
         offset=offset,
         symbol=symbol,
     )
+
+
+# ============================================================================
+# Symbol Management (via KITradingModel)
+# ============================================================================
+
+@router.get("/symbols", response_model=List[ManagedSymbol])
+async def get_managed_symbols(
+    category: Optional[SymbolCategory] = None,
+    status: Optional[SymbolStatus] = None,
+    favorites_only: bool = False,
+    with_data_only: bool = False,
+):
+    """Get all managed symbols with optional filtering."""
+    return await kitrading_service.get_managed_symbols(
+        category=category.value if category else None,
+        status=status.value if status else None,
+        favorites_only=favorites_only,
+        with_data_only=with_data_only,
+    )
+
+
+@router.get("/symbols/stats", response_model=SymbolStats)
+async def get_symbol_stats():
+    """Get statistics about managed symbols."""
+    stats = await kitrading_service.get_symbol_stats()
+    if not stats:
+        raise HTTPException(status_code=500, detail="Failed to get symbol stats")
+    return stats
+
+
+@router.get("/symbols/search")
+async def search_symbols(
+    query: str,
+    limit: int = Query(20, ge=1, le=100),
+) -> Dict[str, Any]:
+    """Search managed symbols."""
+    return await kitrading_service.search_symbols(query=query, limit=limit)
+
+
+@router.post("/symbols/import", response_model=SymbolImportResult)
+async def import_symbols():
+    """Import all symbols from TimescaleDB."""
+    result = await kitrading_service.import_symbols()
+    if not result:
+        raise HTTPException(status_code=500, detail="Failed to import symbols")
+    return result
+
+
+@router.post("/symbols", response_model=ManagedSymbol)
+async def create_symbol(request: SymbolCreateRequest):
+    """Create a new managed symbol."""
+    symbol = await kitrading_service.create_symbol(request.model_dump())
+    if not symbol:
+        raise HTTPException(status_code=500, detail="Failed to create symbol")
+    return symbol
+
+
+@router.get("/symbols/{symbol_id}", response_model=ManagedSymbol)
+async def get_symbol(symbol_id: str):
+    """Get a specific managed symbol."""
+    symbol = await kitrading_service.get_managed_symbol(symbol_id)
+    if not symbol:
+        raise HTTPException(status_code=404, detail=f"Symbol '{symbol_id}' not found")
+    return symbol
+
+
+@router.put("/symbols/{symbol_id}", response_model=ManagedSymbol)
+async def update_symbol(symbol_id: str, request: SymbolUpdateRequest):
+    """Update an existing managed symbol."""
+    symbol = await kitrading_service.update_symbol(
+        symbol_id,
+        request.model_dump(exclude_unset=True)
+    )
+    if not symbol:
+        raise HTTPException(status_code=404, detail=f"Symbol '{symbol_id}' not found")
+    return symbol
+
+
+@router.delete("/symbols/{symbol_id}")
+async def delete_symbol(symbol_id: str):
+    """Delete a managed symbol."""
+    success = await kitrading_service.delete_symbol(symbol_id)
+    if not success:
+        raise HTTPException(status_code=404, detail=f"Symbol '{symbol_id}' not found")
+    return {"status": "deleted", "symbol": symbol_id}
+
+
+@router.post("/symbols/{symbol_id}/favorite", response_model=ManagedSymbol)
+async def toggle_favorite(symbol_id: str):
+    """Toggle favorite status for a symbol."""
+    symbol = await kitrading_service.toggle_favorite(symbol_id)
+    if not symbol:
+        raise HTTPException(status_code=404, detail=f"Symbol '{symbol_id}' not found")
+    return symbol
+
+
+@router.post("/symbols/{symbol_id}/refresh", response_model=ManagedSymbol)
+async def refresh_symbol(symbol_id: str):
+    """Refresh TimescaleDB data for a symbol."""
+    symbol = await kitrading_service.refresh_symbol(symbol_id)
+    if not symbol:
+        raise HTTPException(status_code=404, detail=f"Symbol '{symbol_id}' not found")
+    return symbol
 
 
 # ============================================================================

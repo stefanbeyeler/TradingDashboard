@@ -93,4 +93,18 @@ export const getMarketNews = (query = 'stock market trading', limit = 20) =>
 export const getCombinedNews = (limit = 30) =>
   api.get('/news/combined', { params: { limit } })
 
+// Symbol Management
+export const getManagedSymbols = (params = {}) =>
+  api.get('/symbols', { params })
+export const getSymbolStats = () => api.get('/symbols/stats')
+export const searchSymbols = (query, limit = 20) =>
+  api.get('/symbols/search', { params: { query, limit } })
+export const importSymbols = () => api.post('/symbols/import')
+export const createSymbol = (data) => api.post('/symbols', data)
+export const getSymbol = (symbolId) => api.get(`/symbols/${symbolId}`)
+export const updateSymbol = (symbolId, data) => api.put(`/symbols/${symbolId}`, data)
+export const deleteSymbol = (symbolId) => api.delete(`/symbols/${symbolId}`)
+export const toggleSymbolFavorite = (symbolId) => api.post(`/symbols/${symbolId}/favorite`)
+export const refreshSymbol = (symbolId) => api.post(`/symbols/${symbolId}/refresh`)
+
 export default api
