@@ -1,0 +1,25 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(find:*)",
+      "Bash(docker-compose:*)",
+      "Bash(docker ps:*)",
+      "Bash(docker exec:*)",
+      "Bash(git -C e:/TradingDashboard status)",
+      "Bash(git -C e:/TradingDashboard diff --stat)",
+      "Bash(git -C e:/TradingDashboard log --oneline -5)",
+      "Bash(git -C e:/TradingDashboard add backend/init.sql backend/src/db/ backend/src/config/settings.py backend/src/main.py docker-compose.yml)",
+      "Bash(git -C e:/TradingDashboard commit -m \"$(cat <<''EOF''\nAdd PostgreSQL database container for configuration and trading analysis storage\n\n- Add PostgreSQL 16 container to docker-compose.yml (port 5433)\n- Create init.sql with tables for app_config, user_preferences, trading_analyses, price_forecasts, watchlists, price_alerts, and trade_journal\n- Add SQLAlchemy models and async database connection layer\n- Implement repository classes for all database operations\n- Update settings.py with database_url configuration\n- Integrate database lifecycle into FastAPI app startup/shutdown\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n)\")",
+      "Bash(git -C e:/TradingDashboard diff backend/src/models/__init__.py backend/src/models/market_data.py frontend/src/views/SymbolsView.vue)",
+      "Bash(git -C e:/TradingDashboard add backend/src/models/__init__.py backend/src/models/market_data.py frontend/src/views/SymbolsView.vue)",
+      "Bash(git -C e:/TradingDashboard commit -m \"$(cat <<''EOF''\nAdd SymbolSubcategory support for granular symbol classification\n\n- Add SymbolSubcategory enum with categories for forex, crypto, stocks, indices, and commodities\n- Extend ManagedSymbol, SymbolCreateRequest, and SymbolUpdateRequest models with subcategory field\n- Add by_subcategory field to SymbolStats for subcategory distribution\n- Update SymbolsView.vue with subcategory dropdown that changes based on selected category\n- Display subcategory in symbol table and improve modal layout\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n)\")",
+      "Bash(docker logs:*)",
+      "Bash(docker rm:*)",
+      "Bash(docker volume rm:*)",
+      "Bash(git -C e:/TradingDashboard add backend/src/api/routes.py backend/src/db/__init__.py backend/src/db/schemas.py docker-compose.yml frontend/src/services/api.js frontend/src/views/SettingsView.vue)",
+      "Bash(git -C e:/TradingDashboard commit -m \"$(cat <<''EOF''\nAdd backup and restore functionality for configuration data\n\n- Add GET /backup endpoint to export all config, preferences, watchlists,\n  alerts, analyses, and trade journal entries as JSON\n- Add POST /restore endpoint with selective restore options\n- Create BackupData, BackupMetadata, RestoreRequest, RestoreResult schemas\n- Add frontend UI in Settings with backup download and file upload restore\n- Allow users to select which data categories to restore\n- Add pgAdmin container (port 5050) for database management\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n)\")"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
