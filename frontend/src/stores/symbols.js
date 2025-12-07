@@ -12,6 +12,7 @@ export const useSymbolStore = defineStore('symbols', () => {
   // Filters
   const searchQuery = ref('')
   const categoryFilter = ref('')
+  const subcategoryFilter = ref('')
   const statusFilter = ref('')
   const favoritesOnly = ref(false)
   const withDataOnly = ref(false)
@@ -31,6 +32,10 @@ export const useSymbolStore = defineStore('symbols', () => {
 
     if (categoryFilter.value) {
       result = result.filter((s) => s.category === categoryFilter.value)
+    }
+
+    if (subcategoryFilter.value) {
+      result = result.filter((s) => s.subcategory === subcategoryFilter.value)
     }
 
     if (statusFilter.value) {
@@ -177,9 +182,10 @@ export const useSymbolStore = defineStore('symbols', () => {
     }
   }
 
-  function setFilters({ search, category, status, favorites, withData }) {
+  function setFilters({ search, category, subcategory, status, favorites, withData }) {
     if (search !== undefined) searchQuery.value = search
     if (category !== undefined) categoryFilter.value = category
+    if (subcategory !== undefined) subcategoryFilter.value = subcategory
     if (status !== undefined) statusFilter.value = status
     if (favorites !== undefined) favoritesOnly.value = favorites
     if (withData !== undefined) withDataOnly.value = withData
@@ -188,6 +194,7 @@ export const useSymbolStore = defineStore('symbols', () => {
   function clearFilters() {
     searchQuery.value = ''
     categoryFilter.value = ''
+    subcategoryFilter.value = ''
     statusFilter.value = ''
     favoritesOnly.value = false
     withDataOnly.value = false
@@ -201,6 +208,7 @@ export const useSymbolStore = defineStore('symbols', () => {
     error,
     searchQuery,
     categoryFilter,
+    subcategoryFilter,
     statusFilter,
     favoritesOnly,
     withDataOnly,

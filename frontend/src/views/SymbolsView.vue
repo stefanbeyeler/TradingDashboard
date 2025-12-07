@@ -54,7 +54,7 @@
             @input="handleSearch"
           />
         </div>
-        <select v-model="categoryFilter" class="input w-auto" @change="handleFilterChange">
+        <select v-model="categoryFilter" class="input w-auto" @change="handleCategoryFilterChange">
           <option value="">All Categories</option>
           <option value="forex">Forex</option>
           <option value="crypto">Crypto</option>
@@ -62,6 +62,17 @@
           <option value="index">Indices</option>
           <option value="commodity">Commodities</option>
           <option value="other">Other</option>
+        </select>
+        <select
+          v-model="subcategoryFilter"
+          class="input w-auto"
+          :disabled="!categoryFilter || subcategoryOptions.length === 0"
+          @change="handleFilterChange"
+        >
+          <option value="">All Subcategories</option>
+          <option v-for="opt in subcategoryOptions" :key="opt.value" :value="opt.value">
+            {{ opt.label }}
+          </option>
         </select>
         <select v-model="statusFilter" class="input w-auto" @change="handleFilterChange">
           <option value="">All Status</option>
@@ -333,7 +344,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useSymbolStore } from '@/stores/symbols'
 import { storeToRefs } from 'pinia'
 
@@ -343,9 +354,49 @@ const { symbols, stats, isLoading, filteredSymbols } = storeToRefs(symbolStore)
 // Local state
 const searchQuery = ref('')
 const categoryFilter = ref('')
+const subcategoryFilter = ref('')
 const statusFilter = ref('')
 const favoritesOnly = ref(false)
 const withDataOnly = ref(false)
+
+// Dynamic subcategory options based on selected category
+const subcategoryOptions = computed(() => {
+  const options = {
+    forex: [
+      { value: 'major', label: 'Major' },
+      { value: 'minor', label: 'Minor' },
+      { value: 'exotic', label: 'Exotic' },
+    ],
+    crypto: [
+      { value: 'large_cap', label: 'Large Cap' },
+      { value: 'mid_cap', label: 'Mid Cap' },
+      { value: 'small_cap', label: 'Small Cap' },
+      { value: 'defi', label: 'DeFi' },
+      { value: 'meme', label: 'Meme' },
+      { value: 'stablecoin', label: 'Stablecoin' },
+    ],
+    stock: [
+      { value: 'tech', label: 'Tech' },
+      { value: 'finance', label: 'Finance' },
+      { value: 'healthcare', label: 'Healthcare' },
+      { value: 'energy', label: 'Energy' },
+      { value: 'consumer', label: 'Consumer' },
+      { value: 'industrial', label: 'Industrial' },
+    ],
+    index: [
+      { value: 'global', label: 'Global' },
+      { value: 'regional', label: 'Regional' },
+      { value: 'sector', label: 'Sector' },
+    ],
+    commodity: [
+      { value: 'precious_metal', label: 'Precious Metal' },
+      { value: 'base_metal', label: 'Base Metal' },
+      { value: 'agriculture', label: 'Agriculture' },
+      { value: 'energy_commodity', label: 'Energy' },
+    ],
+  }
+  return categoryFilter.value ? options[categoryFilter.value] || [] : []
+})
 const showCreateModal = ref(false)
 const showEditModal = ref(false)
 const editingSymbol = ref(null)
@@ -440,10 +491,17 @@ function handleSearch() {
   symbolStore.setFilters({ search: searchQuery.value })
 }
 
+function handleCategoryFilterChange() {
+  // Reset subcategory when category changes
+  subcategoryFilter.value = ''
+  handleFilterChange()
+}
+
 function handleFilterChange() {
   symbolStore.setFilters({
     search: searchQuery.value,
     category: categoryFilter.value,
+    subcategory: subcategoryFilter.value,
     status: statusFilter.value,
     favorites: favoritesOnly.value,
     withData: withDataOnly.value,
