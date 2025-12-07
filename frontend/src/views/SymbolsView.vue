@@ -121,9 +121,14 @@
                 </div>
               </td>
               <td class="py-3 px-2">
-                <span class="px-2 py-1 bg-dark-300 rounded text-xs text-gray-300">
-                  {{ categoryLabels[symbol.category] || symbol.category }}
-                </span>
+                <div class="flex flex-col gap-1">
+                  <span class="px-2 py-1 bg-dark-300 rounded text-xs text-gray-300">
+                    {{ categoryLabels[symbol.category] || symbol.category }}
+                  </span>
+                  <span v-if="symbol.subcategory" class="px-2 py-0.5 bg-dark-400 rounded text-xs text-gray-400">
+                    {{ subcategoryLabels[symbol.subcategory] || symbol.subcategory }}
+                  </span>
+                </div>
               </td>
               <td class="py-3 px-2 text-center">
                 <span
@@ -190,7 +195,7 @@
 
     <!-- Create/Edit Modal -->
     <div v-if="showCreateModal || showEditModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50" @click.self="closeModal">
-      <div class="bg-dark-200 rounded-lg p-6 w-full max-w-lg mx-4">
+      <div class="bg-dark-200 rounded-lg p-6 w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto">
         <h3 class="text-lg font-bold text-white mb-4">
           {{ showEditModal ? `Edit Symbol: ${editingSymbol?.symbol}` : 'Create New Symbol' }}
         </h3>
@@ -220,7 +225,7 @@
           <div class="grid grid-cols-2 gap-4">
             <div>
               <label class="block text-gray-400 text-sm mb-1">Category</label>
-              <select v-model="formData.category" class="input">
+              <select v-model="formData.category" class="input" @change="onCategoryChange">
                 <option value="forex">Forex</option>
                 <option value="crypto">Crypto</option>
                 <option value="stock">Stocks</option>
@@ -231,6 +236,47 @@
               </select>
             </div>
             <div>
+              <label class="block text-gray-400 text-sm mb-1">Subcategory</label>
+              <select v-model="formData.subcategory" class="input">
+                <option value="">-- None --</option>
+                <optgroup v-if="formData.category === 'forex'" label="Forex">
+                  <option value="major">Major</option>
+                  <option value="minor">Minor</option>
+                  <option value="exotic">Exotic</option>
+                </optgroup>
+                <optgroup v-if="formData.category === 'crypto'" label="Crypto">
+                  <option value="large_cap">Large Cap</option>
+                  <option value="mid_cap">Mid Cap</option>
+                  <option value="small_cap">Small Cap</option>
+                  <option value="defi">DeFi</option>
+                  <option value="meme">Meme</option>
+                  <option value="stablecoin">Stablecoin</option>
+                </optgroup>
+                <optgroup v-if="formData.category === 'stock'" label="Stocks">
+                  <option value="tech">Tech</option>
+                  <option value="finance">Finance</option>
+                  <option value="healthcare">Healthcare</option>
+                  <option value="energy">Energy</option>
+                  <option value="consumer">Consumer</option>
+                  <option value="industrial">Industrial</option>
+                </optgroup>
+                <optgroup v-if="formData.category === 'index'" label="Indices">
+                  <option value="global">Global</option>
+                  <option value="regional">Regional</option>
+                  <option value="sector">Sector</option>
+                </optgroup>
+                <optgroup v-if="formData.category === 'commodity'" label="Commodities">
+                  <option value="precious_metal">Precious Metal</option>
+                  <option value="base_metal">Base Metal</option>
+                  <option value="agriculture">Agriculture</option>
+                  <option value="energy_commodity">Energy</option>
+                </optgroup>
+                <option value="other">Other</option>
+              </select>
+            </div>
+          </div>
+          <div class="grid grid-cols-2 gap-4">
+            <div>
               <label class="block text-gray-400 text-sm mb-1">Status</label>
               <select v-model="formData.status" class="input">
                 <option value="active">Active</option>
@@ -238,15 +284,21 @@
                 <option value="suspended">Suspended</option>
               </select>
             </div>
-          </div>
-          <div class="grid grid-cols-2 gap-4">
             <div>
               <label class="block text-gray-400 text-sm mb-1">Base Currency</label>
               <input v-model="formData.base_currency" type="text" class="input" placeholder="e.g. EUR" />
             </div>
+          </div>
+          <div class="grid grid-cols-2 gap-4">
             <div>
               <label class="block text-gray-400 text-sm mb-1">Quote Currency</label>
               <input v-model="formData.quote_currency" type="text" class="input" placeholder="e.g. USD" />
+            </div>
+            <div class="flex items-end">
+              <label class="flex items-center gap-2 text-gray-300 text-sm cursor-pointer pb-2">
+                <input type="checkbox" v-model="formData.is_favorite" class="form-checkbox" />
+                Mark as favorite
+              </label>
             </div>
           </div>
           <div>
@@ -260,10 +312,6 @@
           <div>
             <label class="block text-gray-400 text-sm mb-1">Tags (comma-separated)</label>
             <input v-model="formData.tagsString" type="text" class="input" placeholder="e.g. major, trending, volatile" />
-          </div>
-          <div class="flex items-center gap-2">
-            <input type="checkbox" v-model="formData.is_favorite" id="isFavorite" class="form-checkbox" />
-            <label for="isFavorite" class="text-gray-300 text-sm">Mark as favorite</label>
           </div>
           <div class="flex gap-3 mt-6">
             <button type="submit" class="btn btn-primary flex-1">Save</button>
@@ -307,6 +355,7 @@ const formData = ref({
   symbol: '',
   display_name: '',
   category: 'forex',
+  subcategory: '',
   status: 'active',
   base_currency: '',
   quote_currency: '',
@@ -323,6 +372,38 @@ const categoryLabels = {
   index: 'Indices',
   commodity: 'Commodities',
   etf: 'ETF',
+  other: 'Other',
+}
+
+const subcategoryLabels = {
+  // Forex
+  major: 'Major',
+  minor: 'Minor',
+  exotic: 'Exotic',
+  // Crypto
+  large_cap: 'Large Cap',
+  mid_cap: 'Mid Cap',
+  small_cap: 'Small Cap',
+  defi: 'DeFi',
+  meme: 'Meme',
+  stablecoin: 'Stablecoin',
+  // Stocks
+  tech: 'Tech',
+  finance: 'Finance',
+  healthcare: 'Healthcare',
+  energy: 'Energy',
+  consumer: 'Consumer',
+  industrial: 'Industrial',
+  // Indices
+  global: 'Global',
+  regional: 'Regional',
+  sector: 'Sector',
+  // Commodities
+  precious_metal: 'Precious Metal',
+  base_metal: 'Base Metal',
+  agriculture: 'Agriculture',
+  energy_commodity: 'Energy',
+  // General
   other: 'Other',
 }
 
@@ -405,12 +486,18 @@ async function handleDelete(symbolId) {
   }
 }
 
+function onCategoryChange() {
+  // Reset subcategory when category changes
+  formData.value.subcategory = ''
+}
+
 function editSymbol(symbol) {
   editingSymbol.value = symbol
   formData.value = {
     symbol: symbol.symbol,
     display_name: symbol.display_name || '',
     category: symbol.category || 'forex',
+    subcategory: symbol.subcategory || '',
     status: symbol.status || 'active',
     base_currency: symbol.base_currency || '',
     quote_currency: symbol.quote_currency || '',
@@ -430,6 +517,7 @@ function closeModal() {
     symbol: '',
     display_name: '',
     category: 'forex',
+    subcategory: '',
     status: 'active',
     base_currency: '',
     quote_currency: '',
@@ -446,6 +534,10 @@ async function handleSaveSymbol() {
     tags: formData.value.tagsString.split(',').map(t => t.trim()).filter(t => t),
   }
   delete data.tagsString
+  // Convert empty subcategory to null
+  if (!data.subcategory) {
+    data.subcategory = null
+  }
 
   try {
     if (showEditModal.value) {

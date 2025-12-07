@@ -163,12 +163,46 @@ class SymbolStatus(str, Enum):
     INACTIVE = "inactive"
     SUSPENDED = "suspended"
 
+class SymbolSubcategory(str, Enum):
+    """Sub-categories for more granular symbol classification."""
+    # Forex subcategories
+    MAJOR = "major"
+    MINOR = "minor"
+    EXOTIC = "exotic"
+    # Crypto subcategories
+    LARGE_CAP = "large_cap"
+    MID_CAP = "mid_cap"
+    SMALL_CAP = "small_cap"
+    DEFI = "defi"
+    MEME = "meme"
+    STABLECOIN = "stablecoin"
+    # Stock subcategories
+    TECH = "tech"
+    FINANCE = "finance"
+    HEALTHCARE = "healthcare"
+    ENERGY = "energy"
+    CONSUMER = "consumer"
+    INDUSTRIAL = "industrial"
+    # Index subcategories
+    GLOBAL = "global"
+    REGIONAL = "regional"
+    SECTOR = "sector"
+    # Commodity subcategories
+    PRECIOUS_METAL = "precious_metal"
+    BASE_METAL = "base_metal"
+    AGRICULTURE = "agriculture"
+    ENERGY_COMMODITY = "energy_commodity"
+    # General
+    OTHER = "other"
+
+
 
 class ManagedSymbol(BaseModel):
     """A managed trading symbol with metadata."""
     symbol: str
     display_name: Optional[str] = None
     category: SymbolCategory = SymbolCategory.FOREX
+    subcategory: Optional[SymbolSubcategory] = None
     status: SymbolStatus = SymbolStatus.ACTIVE
     description: Optional[str] = None
     base_currency: Optional[str] = None
@@ -194,6 +228,7 @@ class SymbolCreateRequest(BaseModel):
     symbol: str
     display_name: Optional[str] = None
     category: SymbolCategory = SymbolCategory.FOREX
+    subcategory: Optional[SymbolSubcategory] = None
     description: Optional[str] = None
     base_currency: Optional[str] = None
     quote_currency: Optional[str] = None
@@ -208,6 +243,7 @@ class SymbolUpdateRequest(BaseModel):
     """Request to update an existing managed symbol."""
     display_name: Optional[str] = None
     category: Optional[SymbolCategory] = None
+    subcategory: Optional[SymbolSubcategory] = None
     status: Optional[SymbolStatus] = None
     description: Optional[str] = None
     base_currency: Optional[str] = None
@@ -239,4 +275,5 @@ class SymbolStats(BaseModel):
     with_timescaledb_data: int
     with_nhits_model: int
     by_category: Dict[str, int]
+    by_subcategory: Dict[str, int] = {}
     favorites_count: int
