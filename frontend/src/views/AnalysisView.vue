@@ -180,10 +180,42 @@
           </div>
         </div>
 
-        <!-- Take Profits -->
+        <!-- Trading Values -->
         <div class="card">
-          <h4 class="text-white font-semibold mb-3">Take Profit Targets</h4>
+          <h4 class="text-white font-semibold mb-3">Trading Values</h4>
           <div class="space-y-3">
+            <div class="flex justify-between items-center">
+              <span class="text-gray-400">Entry Price</span>
+              <div class="flex items-center gap-2">
+                <span class="text-white font-mono">{{ formatPrice(recommendation.entry_price) }}</span>
+                <button
+                  v-if="recommendation.entry_price"
+                  @click="copyToClipboard(recommendation.entry_price)"
+                  class="text-gray-400 hover:text-white transition-colors"
+                  title="Copy"
+                >
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+                  </svg>
+                </button>
+              </div>
+            </div>
+            <div class="flex justify-between items-center">
+              <span class="text-gray-400">Stop Loss</span>
+              <div class="flex items-center gap-2">
+                <span class="text-red-400 font-mono">{{ formatPrice(recommendation.stop_loss) }}</span>
+                <button
+                  v-if="recommendation.stop_loss"
+                  @click="copyToClipboard(recommendation.stop_loss)"
+                  class="text-gray-400 hover:text-white transition-colors"
+                  title="Copy"
+                >
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+                  </svg>
+                </button>
+              </div>
+            </div>
             <div class="flex justify-between items-center">
               <span class="text-gray-400">TP1</span>
               <div class="flex items-center gap-2">
