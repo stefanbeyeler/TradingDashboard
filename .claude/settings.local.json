@@ -17,7 +17,8 @@
       "Bash(docker rm:*)",
       "Bash(docker volume rm:*)",
       "Bash(git -C e:/TradingDashboard add backend/src/api/routes.py backend/src/db/__init__.py backend/src/db/schemas.py docker-compose.yml frontend/src/services/api.js frontend/src/views/SettingsView.vue)",
-      "Bash(git -C e:/TradingDashboard commit -m \"$(cat <<''EOF''\nAdd backup and restore functionality for configuration data\n\n- Add GET /backup endpoint to export all config, preferences, watchlists,\n  alerts, analyses, and trade journal entries as JSON\n- Add POST /restore endpoint with selective restore options\n- Create BackupData, BackupMetadata, RestoreRequest, RestoreResult schemas\n- Add frontend UI in Settings with backup download and file upload restore\n- Allow users to select which data categories to restore\n- Add pgAdmin container (port 5050) for database management\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n)\")"
+      "Bash(git -C e:/TradingDashboard commit -m \"$(cat <<''EOF''\nAdd backup and restore functionality for configuration data\n\n- Add GET /backup endpoint to export all config, preferences, watchlists,\n  alerts, analyses, and trade journal entries as JSON\n- Add POST /restore endpoint with selective restore options\n- Create BackupData, BackupMetadata, RestoreRequest, RestoreResult schemas\n- Add frontend UI in Settings with backup download and file upload restore\n- Allow users to select which data categories to restore\n- Add pgAdmin container (port 5050) for database management\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n)\")",
+      "Bash(cat:*)"
     ],
     "deny": [],
     "ask": []

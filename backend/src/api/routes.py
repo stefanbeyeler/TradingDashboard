@@ -141,8 +141,9 @@ async def get_ki_recommendation(
     symbol: str,
     use_llm: bool = Query(False, description="Use LLM for enhanced analysis"),
     strategy_id: Optional[str] = Query(None, description="Strategy ID to use"),
+    db: AsyncSession = Depends(get_db),
 ) -> Optional[KIRecommendation]:
-    """Get trading recommendation from KITradingModel."""
+    """Get trading recommendation from KITradingModel and save to database."""
     recommendation = await kitrading_service.get_recommendation(
         symbol=symbol,
         use_llm=use_llm,
@@ -150,12 +151,42 @@ async def get_ki_recommendation(
     )
     if not recommendation:
         raise HTTPException(status_code=404, detail=f"No recommendation for {symbol}")
+
+    # Save to database
+    try:
+        repo = TradingAnalysisRepository(db)
+        analysis = TradingAnalysis(
+            symbol=symbol,
+            timeframe="1h",
+            analysis_type="ki_recommendation",
+            direction=recommendation.direction,
+            confidence_score=recommendation.confidence_score,
+            entry_price=recommendation.entry_price,
+            stop_loss=recommendation.stop_loss,
+            take_profit_1=recommendation.take_profit_1,
+            take_profit_2=recommendation.take_profit_2,
+            take_profit_3=recommendation.take_profit_3,
+            risk_reward_ratio=recommendation.risk_reward_ratio,
+            rationale=recommendation.rationale,
+            key_levels=recommendation.key_levels if isinstance(recommendation.key_levels, str) else str(recommendation.key_levels) if recommendation.key_levels else None,
+            risks=recommendation.risks or [],
+            strategy_id=strategy_id,
+            raw_response={"use_llm": use_llm, "timestamp": recommendation.timestamp},
+        )
+        await repo.create(analysis)
+    except Exception as e:
+        # Log but don't fail the request if saving fails
+        print(f"Failed to save recommendation to database: {e}")
+
     return recommendation
 
 
 @router.post("/ki/analyze")
-async def analyze_symbol(request: KIAnalysisRequest) -> Dict[str, Any]:
-    """Get full market analysis from KITradingModel."""
+async def analyze_symbol(
+    request: KIAnalysisRequest,
+    db: AsyncSession = Depends(get_db),
+) -> Dict[str, Any]:
+    """Get full market analysis from KITradingModel and save to database."""
     result = await kitrading_service.analyze(
         symbol=request.symbol,
         lookback_days=request.lookback_days,
@@ -164,6 +195,35 @@ async def analyze_symbol(request: KIAnalysisRequest) -> Dict[str, Any]:
     )
     if not result:
         raise HTTPException(status_code=500, detail="Analysis failed")
+
+    # Save to database if recommendation exists
+    try:
+        if result.get("recommendation"):
+            rec = result["recommendation"]
+            repo = TradingAnalysisRepository(db)
+            analysis = TradingAnalysis(
+                symbol=request.symbol,
+                timeframe="1h",
+                analysis_type="ki_full_analysis",
+                direction=rec.get("direction"),
+                confidence_score=rec.get("confidence_score"),
+                entry_price=rec.get("entry_price"),
+                stop_loss=rec.get("stop_loss"),
+                take_profit_1=rec.get("take_profit_1"),
+                take_profit_2=rec.get("take_profit_2"),
+                take_profit_3=rec.get("take_profit_3"),
+                risk_reward_ratio=rec.get("risk_reward_ratio"),
+                rationale=rec.get("rationale"),
+                key_levels=rec.get("key_levels") if isinstance(rec.get("key_levels"), str) else str(rec.get("key_levels")) if rec.get("key_levels") else None,
+                risks=rec.get("risks") or [],
+                strategy_id=request.strategy_id,
+                raw_response=result,
+            )
+            await repo.create(analysis)
+    except Exception as e:
+        # Log but don't fail the request if saving fails
+        print(f"Failed to save analysis to database: {e}")
+
     return result
 
 

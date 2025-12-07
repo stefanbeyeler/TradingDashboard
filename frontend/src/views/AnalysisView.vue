@@ -89,15 +89,51 @@
         <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
           <div class="bg-dark-300 p-3 rounded-lg">
             <p class="text-sm text-gray-400">Entry Price</p>
-            <p class="text-xl font-mono text-white">{{ formatPrice(recommendation.entry_price) }}</p>
+            <div class="flex items-center gap-2">
+              <p class="text-xl font-mono text-white">{{ formatPrice(recommendation.entry_price) }}</p>
+              <button
+                v-if="recommendation.entry_price"
+                @click="copyToClipboard(recommendation.entry_price)"
+                class="text-gray-400 hover:text-white transition-colors"
+                title="Copy"
+              >
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+                </svg>
+              </button>
+            </div>
           </div>
           <div class="bg-dark-300 p-3 rounded-lg">
             <p class="text-sm text-gray-400">Stop Loss</p>
-            <p class="text-xl font-mono text-red-400">{{ formatPrice(recommendation.stop_loss) }}</p>
+            <div class="flex items-center gap-2">
+              <p class="text-xl font-mono text-red-400">{{ formatPrice(recommendation.stop_loss) }}</p>
+              <button
+                v-if="recommendation.stop_loss"
+                @click="copyToClipboard(recommendation.stop_loss)"
+                class="text-gray-400 hover:text-white transition-colors"
+                title="Copy"
+              >
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+                </svg>
+              </button>
+            </div>
           </div>
           <div class="bg-dark-300 p-3 rounded-lg">
             <p class="text-sm text-gray-400">Take Profit 1</p>
-            <p class="text-xl font-mono text-green-400">{{ formatPrice(recommendation.take_profit_1) }}</p>
+            <div class="flex items-center gap-2">
+              <p class="text-xl font-mono text-green-400">{{ formatPrice(recommendation.take_profit_1) }}</p>
+              <button
+                v-if="recommendation.take_profit_1"
+                @click="copyToClipboard(recommendation.take_profit_1)"
+                class="text-gray-400 hover:text-white transition-colors"
+                title="Copy"
+              >
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+                </svg>
+              </button>
+            </div>
           </div>
           <div class="bg-dark-300 p-3 rounded-lg">
             <p class="text-sm text-gray-400">Risk/Reward</p>
@@ -150,15 +186,51 @@
           <div class="space-y-3">
             <div class="flex justify-between items-center">
               <span class="text-gray-400">TP1</span>
-              <span class="text-green-400 font-mono">{{ formatPrice(recommendation.take_profit_1) }}</span>
+              <div class="flex items-center gap-2">
+                <span class="text-green-400 font-mono">{{ formatPrice(recommendation.take_profit_1) }}</span>
+                <button
+                  v-if="recommendation.take_profit_1"
+                  @click="copyToClipboard(recommendation.take_profit_1)"
+                  class="text-gray-400 hover:text-white transition-colors"
+                  title="Copy"
+                >
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+                  </svg>
+                </button>
+              </div>
             </div>
             <div class="flex justify-between items-center">
               <span class="text-gray-400">TP2</span>
-              <span class="text-green-400 font-mono">{{ formatPrice(recommendation.take_profit_2) }}</span>
+              <div class="flex items-center gap-2">
+                <span class="text-green-400 font-mono">{{ formatPrice(recommendation.take_profit_2) }}</span>
+                <button
+                  v-if="recommendation.take_profit_2"
+                  @click="copyToClipboard(recommendation.take_profit_2)"
+                  class="text-gray-400 hover:text-white transition-colors"
+                  title="Copy"
+                >
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+                  </svg>
+                </button>
+              </div>
             </div>
             <div class="flex justify-between items-center">
               <span class="text-gray-400">TP3</span>
-              <span class="text-green-400 font-mono">{{ formatPrice(recommendation.take_profit_3) }}</span>
+              <div class="flex items-center gap-2">
+                <span class="text-green-400 font-mono">{{ formatPrice(recommendation.take_profit_3) }}</span>
+                <button
+                  v-if="recommendation.take_profit_3"
+                  @click="copyToClipboard(recommendation.take_profit_3)"
+                  class="text-gray-400 hover:text-white transition-colors"
+                  title="Copy"
+                >
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+                  </svg>
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -189,23 +261,41 @@
       <p class="text-gray-500">Select a symbol and run an analysis to see recommendations</p>
     </div>
 
-    <!-- Query History -->
+    <!-- Saved Analyses History -->
     <div class="card">
-      <h3 class="text-lg font-semibold text-white mb-4">Recent Queries</h3>
-      <div v-if="queryLogs.length" class="space-y-2">
+      <h3 class="text-lg font-semibold text-white mb-4">Gespeicherte Analysen</h3>
+      <div v-if="savedAnalyses.length" class="space-y-2">
         <div
-          v-for="log in queryLogs.slice(0, 10)"
-          :key="log.id"
-          class="flex items-center justify-between p-3 bg-dark-300 rounded-lg"
+          v-for="analysis in savedAnalyses"
+          :key="analysis.id"
+          class="flex items-center justify-between p-3 bg-dark-300 rounded-lg cursor-pointer hover:bg-dark-200 transition-colors"
+          @click="loadSavedAnalysis(analysis)"
         >
-          <div>
-            <span class="text-white font-medium">{{ log.symbol }}</span>
-            <span class="text-gray-400 text-sm ml-2">{{ log.query_type }}</span>
+          <div class="flex items-center gap-3">
+            <span
+              class="px-2 py-1 rounded text-xs font-bold"
+              :class="{
+                'bg-green-500/20 text-green-400': analysis.direction === 'LONG',
+                'bg-red-500/20 text-red-400': analysis.direction === 'SHORT',
+                'bg-yellow-500/20 text-yellow-400': analysis.direction === 'NEUTRAL'
+              }"
+            >
+              {{ analysis.direction || '?' }}
+            </span>
+            <div>
+              <span class="text-white font-medium">{{ analysis.symbol }}</span>
+              <span class="text-gray-400 text-sm ml-2">{{ analysis.analysis_type }}</span>
+            </div>
           </div>
-          <span class="text-gray-500 text-sm">{{ formatTimestamp(log.timestamp) }}</span>
+          <div class="flex items-center gap-4">
+            <span v-if="analysis.confidence_score" class="text-gray-400 text-sm">
+              {{ analysis.confidence_score }}%
+            </span>
+            <span class="text-gray-500 text-sm">{{ formatTimestamp(analysis.created_at) }}</span>
+          </div>
         </div>
       </div>
-      <p v-else class="text-gray-500 text-center py-4">No query history available</p>
+      <p v-else class="text-gray-500 text-center py-4">Noch keine Analysen gespeichert</p>
     </div>
   </div>
 </template>
@@ -225,7 +315,7 @@ const form = reactive({
 })
 
 const recommendation = ref(null)
-const queryLogs = ref([])
+const savedAnalyses = ref([])
 
 const kiSymbols = computed(() => store.kiSymbols)
 const strategies = computed(() => store.kiStrategies)
@@ -242,7 +332,7 @@ async function runAnalysis() {
     if (result?.recommendation) {
       recommendation.value = result.recommendation
     }
-    await loadQueryLogs()
+    await loadSavedAnalyses()
   } catch (e) {
     console.error('Analysis failed:', e)
   }
@@ -255,19 +345,51 @@ async function getQuickRecommendation() {
       form.useLlm,
       form.strategyId || null
     )
-    await loadQueryLogs()
+    await loadSavedAnalyses()
   } catch (e) {
     console.error('Quick recommendation failed:', e)
   }
 }
 
-async function loadQueryLogs() {
+async function loadSavedAnalyses() {
   try {
-    const data = await api.getQueryLogs(20)
-    queryLogs.value = data.logs || []
+    const data = await api.getRecentAnalyses(20)
+    savedAnalyses.value = data.analyses || []
   } catch (e) {
-    console.error('Failed to load query logs:', e)
+    console.error('Failed to load saved analyses:', e)
   }
+}
+
+function loadSavedAnalysis(analysis) {
+  // Convert saved analysis to recommendation format for display
+  recommendation.value = {
+    symbol: analysis.symbol,
+    direction: analysis.direction,
+    confidence_score: analysis.confidence_score,
+    entry_price: analysis.entry_price,
+    stop_loss: analysis.stop_loss,
+    take_profit_1: analysis.take_profit_1,
+    take_profit_2: analysis.take_profit_2,
+    take_profit_3: analysis.take_profit_3,
+    risk_reward_ratio: analysis.risk_reward_ratio,
+    rationale: analysis.rationale,
+    key_levels: analysis.key_levels,
+    risks: analysis.risks,
+    timestamp: analysis.created_at,
+  }
+  // Update form symbol to match
+  form.symbol = analysis.symbol
+}
+
+function copyToClipboard(value) {
+  if (value === null || value === undefined) return
+  // Format number with dot as decimal separator, no thousands separator, 2 decimal places
+  const formattedValue = typeof value === 'number' ? value.toFixed(2) : String(value)
+  navigator.clipboard.writeText(formattedValue).then(() => {
+    console.log('Copied to clipboard:', formattedValue)
+  }).catch(err => {
+    console.error('Failed to copy:', err)
+  })
 }
 
 function formatPrice(value) {
@@ -418,7 +540,7 @@ function printAnalysis() {
 
 onMounted(async () => {
   await store.fetchKIStrategies()
-  await loadQueryLogs()
+  await loadSavedAnalyses()
   if (store.kiSymbols.length > 0) {
     form.symbol = store.kiSymbols[0]
   }

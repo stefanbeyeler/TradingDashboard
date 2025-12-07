@@ -107,6 +107,11 @@ export const deleteSymbol = (symbolId) => api.delete(`/symbols/${symbolId}`)
 export const toggleSymbolFavorite = (symbolId) => api.post(`/symbols/${symbolId}/favorite`)
 export const refreshSymbol = (symbolId) => api.post(`/symbols/${symbolId}/refresh`)
 
+// Trading Analyses (stored in DB)
+export const getRecentAnalyses = (limit = 20, symbol = null) =>
+  api.get('/analyses', { params: { limit, symbol } })
+export const getAnalysis = (analysisId) => api.get(`/analyses/${analysisId}`)
+
 // Backup/Restore
 export const createBackup = () => api.get('/backup')
 export const restoreBackup = (backupData, options = {}) =>
