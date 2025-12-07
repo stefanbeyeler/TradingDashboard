@@ -1,7 +1,7 @@
 """Configuration settings for TradingDashboard backend."""
 from pydantic_settings import BaseSettings
 from pydantic import field_validator
-from typing import List, Union
+from typing import List, Union, Optional
 import os
 
 
@@ -12,6 +12,9 @@ class Settings(BaseSettings):
     host: str = "0.0.0.0"
     port: int = 3010
     debug: bool = True
+
+    # Database
+    database_url: str = "postgresql+asyncpg://trading:trading_secret@localhost:5432/trading_dashboard"
 
     # KITradingModel API
     kitrading_api_url: str = "http://localhost:3011/api/v1"

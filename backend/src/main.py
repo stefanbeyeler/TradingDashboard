@@ -16,6 +16,7 @@ from .services import (
     binance_service,
     news_service,
 )
+from .db import init_db, close_db
 
 # Configure logging
 logging.basicConfig(
@@ -31,10 +32,18 @@ async def lifespan(app: FastAPI):
     logger.info("Starting TradingDashboard...")
     logger.info(f"KITradingModel API: {settings.kitrading_api_url}")
 
+    # Initialize database
+    db_connected = await init_db()
+    if db_connected:
+        logger.info("Database connection established")
+    else:
+        logger.warning("Database connection failed - some features may be unavailable")
+
     yield
 
     # Cleanup
     logger.info("Shutting down TradingDashboard...")
+    await close_db()
     await kitrading_service.close()
     await coingecko_service.close()
     await alphavantage_service.close()
