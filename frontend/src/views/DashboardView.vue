@@ -44,98 +44,134 @@
         </router-link>
       </div>
 
-      <!-- Analyses Grid -->
-      <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        <div
-          v-for="analysis in sortedAnalyses"
-          :key="analysis.symbol"
-          class="bg-dark-300/50 rounded-lg p-4 hover:bg-dark-300 transition-colors cursor-pointer border border-gray-700/50"
-          @click="goToAnalysis(analysis.symbol)"
-        >
-          <!-- Header -->
-          <div class="flex justify-between items-start mb-3">
-            <div>
-              <div class="flex items-center gap-2">
-                <span class="text-yellow-400">★</span>
-                <span class="font-semibold text-white text-lg">{{ analysis.symbol }}</span>
-              </div>
-              <span
-                class="badge text-xs mt-1"
-                :class="getCategoryBadgeClass(analysis.category)"
+      <!-- Analyses Table -->
+      <div v-else class="overflow-x-auto">
+        <table class="w-full">
+          <thead>
+            <tr class="text-gray-400 text-sm border-b border-gray-700">
+              <th
+                v-for="col in columns"
+                :key="col.key"
+                class="py-3 px-2 cursor-pointer hover:text-white transition-colors select-none"
+                :class="col.align === 'right' ? 'text-right' : col.align === 'center' ? 'text-center' : 'text-left'"
+                @click="toggleSort(col.key)"
               >
-                {{ analysis.category }}
-              </span>
-            </div>
-            <div class="text-right">
-              <span
-                class="badge text-sm font-semibold"
-                :class="getDirectionClass(analysis.direction)"
-              >
-                {{ analysis.direction }}
-              </span>
-            </div>
-          </div>
+                <div class="flex items-center gap-1" :class="col.align === 'right' ? 'justify-end' : col.align === 'center' ? 'justify-center' : ''">
+                  <span>{{ col.label }}</span>
+                  <span v-if="sortKey === col.key" class="text-primary-400">
+                    {{ sortDirection === 'asc' ? '▲' : '▼' }}
+                  </span>
+                  <span v-else class="text-gray-600 text-xs">⇅</span>
+                </div>
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr
+              v-for="analysis in sortedAnalyses"
+              :key="analysis.symbol"
+              class="border-b border-gray-700/50 hover:bg-dark-300/50 cursor-pointer transition-colors"
+              @click="goToAnalysis(analysis.symbol)"
+            >
+              <!-- Symbol -->
+              <td class="py-3 px-2">
+                <div class="flex items-center gap-2">
+                  <span class="text-yellow-400">★</span>
+                  <span class="font-semibold text-white">{{ analysis.symbol }}</span>
+                </div>
+              </td>
 
-          <!-- Confidence -->
-          <div class="mb-3">
-            <div class="flex justify-between text-sm mb-1">
-              <span class="text-gray-400">Konfidenz</span>
-              <span :class="getConfidenceTextClass(analysis.confidence_score)">
-                {{ analysis.confidence_score }}%
-              </span>
-            </div>
-            <div class="w-full bg-dark-400 rounded-full h-2">
-              <div
-                class="h-2 rounded-full transition-all"
-                :class="getConfidenceBarClass(analysis.confidence_score)"
-                :style="{ width: `${analysis.confidence_score}%` }"
-              ></div>
-            </div>
-          </div>
+              <!-- Category -->
+              <td class="py-3 px-2">
+                <span
+                  class="badge text-xs"
+                  :class="getCategoryBadgeClass(analysis.category)"
+                >
+                  {{ analysis.category }}
+                </span>
+              </td>
 
-          <!-- Key Prices -->
-          <div class="grid grid-cols-2 gap-2 text-sm mb-3">
-            <div v-if="analysis.entry_price">
-              <span class="text-gray-500">Entry:</span>
-              <span class="text-white ml-1">{{ formatPrice(analysis.entry_price) }}</span>
-            </div>
-            <div v-if="analysis.stop_loss">
-              <span class="text-gray-500">SL:</span>
-              <span class="text-red-400 ml-1">{{ formatPrice(analysis.stop_loss) }}</span>
-            </div>
-            <div v-if="analysis.take_profit_1">
-              <span class="text-gray-500">TP1:</span>
-              <span class="text-green-400 ml-1">{{ formatPrice(analysis.take_profit_1) }}</span>
-            </div>
-            <div v-if="analysis.risk_reward_ratio">
-              <span class="text-gray-500">R/R:</span>
-              <span class="text-blue-400 ml-1">{{ analysis.risk_reward_ratio.toFixed(2) }}</span>
-            </div>
-          </div>
+              <!-- Direction/Signal -->
+              <td class="py-3 px-2 text-center">
+                <span
+                  class="badge text-xs font-semibold"
+                  :class="getDirectionClass(analysis.direction)"
+                >
+                  {{ analysis.direction }}
+                </span>
+              </td>
 
-          <!-- Technical Indicators (if available) -->
-          <div v-if="analysis.indicators && Object.keys(analysis.indicators).length > 0" class="mb-3">
-            <div class="flex flex-wrap gap-1">
-              <span
-                v-for="(value, key) in getTopIndicators(analysis.indicators)"
-                :key="key"
-                class="text-xs bg-dark-400 px-2 py-0.5 rounded text-gray-300"
-              >
-                {{ key }}: {{ formatIndicator(value) }}
-              </span>
-            </div>
-          </div>
+              <!-- Confidence -->
+              <td class="py-3 px-2">
+                <div class="flex items-center gap-2">
+                  <div class="w-16 bg-dark-400 rounded-full h-2">
+                    <div
+                      class="h-2 rounded-full transition-all"
+                      :class="getConfidenceBarClass(analysis.confidence_score)"
+                      :style="{ width: `${analysis.confidence_score}%` }"
+                    ></div>
+                  </div>
+                  <span
+                    class="text-xs font-medium"
+                    :class="getConfidenceTextClass(analysis.confidence_score)"
+                  >
+                    {{ analysis.confidence_score }}%
+                  </span>
+                </div>
+              </td>
 
-          <!-- Rationale Preview -->
-          <div v-if="analysis.rationale" class="text-xs text-gray-400 line-clamp-2">
-            {{ analysis.rationale }}
-          </div>
+              <!-- Entry Price -->
+              <td class="py-3 px-2 text-right text-white">
+                {{ analysis.entry_price ? formatPrice(analysis.entry_price) : '-' }}
+              </td>
 
-          <!-- Timestamp -->
-          <div class="text-xs text-gray-500 mt-2 text-right">
-            {{ formatTimestamp(analysis.analyzed_at) }}
-          </div>
-        </div>
+              <!-- Stop Loss -->
+              <td class="py-3 px-2 text-right">
+                <span :class="analysis.stop_loss && analysis.stop_loss > 0 ? 'text-red-400' : 'text-gray-500'">
+                  {{ analysis.stop_loss && analysis.stop_loss > 0 ? formatPrice(analysis.stop_loss) : '-' }}
+                </span>
+              </td>
+
+              <!-- Take Profit -->
+              <td class="py-3 px-2 text-right">
+                <span :class="analysis.take_profit_1 ? 'text-green-400' : 'text-gray-500'">
+                  {{ analysis.take_profit_1 ? formatPrice(analysis.take_profit_1) : '-' }}
+                </span>
+              </td>
+
+              <!-- Risk/Reward -->
+              <td class="py-3 px-2 text-center">
+                <span :class="analysis.risk_reward_ratio ? 'text-blue-400' : 'text-gray-500'">
+                  {{ analysis.risk_reward_ratio ? analysis.risk_reward_ratio.toFixed(1) : '-' }}
+                </span>
+              </td>
+
+              <!-- RSI -->
+              <td class="py-3 px-2 text-center">
+                <span :class="getRsiClass(analysis.indicators?.RSI)">
+                  {{ analysis.indicators?.RSI ? analysis.indicators.RSI.toFixed(1) : '-' }}
+                </span>
+              </td>
+
+              <!-- Trend -->
+              <td class="py-3 px-2 text-center">
+                <span
+                  v-if="analysis.indicators?.Trend"
+                  class="text-xs"
+                  :class="getTrendClass(analysis.indicators.Trend)"
+                >
+                  {{ formatTrend(analysis.indicators.Trend) }}
+                </span>
+                <span v-else class="text-gray-500">-</span>
+              </td>
+
+              <!-- Timestamp -->
+              <td class="py-3 px-2 text-right text-gray-400 text-xs">
+                {{ formatTimestamp(analysis.analyzed_at) }}
+              </td>
+            </tr>
+          </tbody>
+        </table>
       </div>
     </div>
 
@@ -212,6 +248,25 @@ const store = useMarketStore()
 const router = useRouter()
 const isRefreshing = ref(false)
 
+// Sorting state
+const sortKey = ref('direction')
+const sortDirection = ref('asc')
+
+// Column definitions
+const columns = [
+  { key: 'symbol', label: 'Symbol', align: 'left' },
+  { key: 'category', label: 'Kategorie', align: 'left' },
+  { key: 'direction', label: 'Signal', align: 'center' },
+  { key: 'confidence_score', label: 'Konfidenz', align: 'center' },
+  { key: 'entry_price', label: 'Entry', align: 'right' },
+  { key: 'stop_loss', label: 'Stop Loss', align: 'right' },
+  { key: 'take_profit_1', label: 'Take Profit', align: 'right' },
+  { key: 'risk_reward_ratio', label: 'R/R', align: 'center' },
+  { key: 'rsi', label: 'RSI', align: 'center' },
+  { key: 'trend', label: 'Trend', align: 'center' },
+  { key: 'analyzed_at', label: 'Zeit', align: 'right' },
+]
+
 const favoriteSymbols = computed(() => store.favoriteSymbols)
 const scheduledAnalyses = computed(() => store.scheduledAnalyses)
 const schedulerStatus = computed(() => store.schedulerStatus)
@@ -225,15 +280,70 @@ const sortedFavoriteSymbols = computed(() => {
   })
 })
 
-// Sort analyses by confidence (highest first), then by direction (LONG, SHORT, NEUTRAL)
+// Toggle sort direction or change sort key
+function toggleSort(key) {
+  if (sortKey.value === key) {
+    sortDirection.value = sortDirection.value === 'asc' ? 'desc' : 'asc'
+  } else {
+    sortKey.value = key
+    sortDirection.value = 'asc'
+  }
+}
+
+// Get sortable value for a given key
+function getSortValue(analysis, key) {
+  switch (key) {
+    case 'symbol':
+      return analysis.symbol || ''
+    case 'category':
+      return analysis.category || ''
+    case 'direction':
+      // LONG=0, SHORT=1, NEUTRAL=2 for sorting
+      const dirPriority = { LONG: 0, SHORT: 1, NEUTRAL: 2 }
+      return dirPriority[analysis.direction] ?? 3
+    case 'confidence_score':
+      return analysis.confidence_score || 0
+    case 'entry_price':
+      return analysis.entry_price || 0
+    case 'stop_loss':
+      return analysis.stop_loss && analysis.stop_loss > 0 ? analysis.stop_loss : 0
+    case 'take_profit_1':
+      return analysis.take_profit_1 || 0
+    case 'risk_reward_ratio':
+      return analysis.risk_reward_ratio || 0
+    case 'rsi':
+      return analysis.indicators?.RSI || 0
+    case 'trend':
+      // Uptrend=0, Downtrend=1, other=2 for sorting
+      const trend = analysis.indicators?.Trend?.toLowerCase() || ''
+      if (trend.includes('uptrend')) return 0
+      if (trend.includes('downtrend')) return 1
+      return 2
+    case 'analyzed_at':
+      return analysis.analyzed_at ? new Date(analysis.analyzed_at).getTime() : 0
+    default:
+      return 0
+  }
+}
+
+// Sort analyses based on current sort settings
 const sortedAnalyses = computed(() => {
-  return [...scheduledAnalyses.value].sort((a, b) => {
-    // First by direction priority
-    const dirPriority = { LONG: 0, SHORT: 1, NEUTRAL: 2 }
-    const dirCompare = (dirPriority[a.direction] || 2) - (dirPriority[b.direction] || 2)
-    if (dirCompare !== 0) return dirCompare
-    // Then by confidence
-    return (b.confidence_score || 0) - (a.confidence_score || 0)
+  const data = [...scheduledAnalyses.value]
+  const key = sortKey.value
+  const dir = sortDirection.value
+
+  return data.sort((a, b) => {
+    const valA = getSortValue(a, key)
+    const valB = getSortValue(b, key)
+
+    let comparison = 0
+    if (typeof valA === 'string' && typeof valB === 'string') {
+      comparison = valA.localeCompare(valB)
+    } else {
+      comparison = valA - valB
+    }
+
+    return dir === 'asc' ? comparison : -comparison
   })
 })
 
@@ -291,6 +401,33 @@ function getConfidenceBarClass(score) {
   return 'bg-red-500'
 }
 
+function getRsiClass(rsi) {
+  if (!rsi) return 'text-gray-500'
+  if (rsi >= 70) return 'text-red-400'  // Overbought
+  if (rsi <= 30) return 'text-green-400'  // Oversold
+  return 'text-white'
+}
+
+function getTrendClass(trend) {
+  if (!trend) return 'text-gray-500'
+  const t = trend.toLowerCase()
+  if (t.includes('uptrend') || t.includes('bullish')) return 'text-green-400'
+  if (t.includes('downtrend') || t.includes('bearish')) return 'text-red-400'
+  return 'text-yellow-400'
+}
+
+function formatTrend(trend) {
+  if (!trend) return '-'
+  // Shorten trend names for table display
+  return trend
+    .replace('Strong_', '')
+    .replace('_', ' ')
+    .replace('uptrend', 'Up')
+    .replace('downtrend', 'Down')
+    .replace('Uptrend', 'Up')
+    .replace('Downtrend', 'Down')
+}
+
 function formatTimestamp(timestamp) {
   if (!timestamp) return '-'
   const date = new Date(timestamp)
@@ -305,32 +442,9 @@ function formatTimestamp(timestamp) {
 function formatPrice(price) {
   if (price == null) return '-'
   const num = parseFloat(price)
-  if (num >= 1000) return num.toFixed(2)
-  if (num >= 1) return num.toFixed(4)
+  if (Math.abs(num) >= 1000) return num.toFixed(2)
+  if (Math.abs(num) >= 1) return num.toFixed(4)
   return num.toFixed(6)
-}
-
-function formatIndicator(value) {
-  if (typeof value === 'number') {
-    return value.toFixed(2)
-  }
-  return value
-}
-
-function getTopIndicators(indicators) {
-  // Return only top 3 most important indicators
-  const priority = ['RSI', 'Trend', 'Signal', 'MACD', 'SMA 200', 'BB Upper', 'BB Lower']
-  const result = {}
-  let count = 0
-
-  for (const key of priority) {
-    if (indicators[key] !== undefined && count < 3) {
-      result[key] = indicators[key]
-      count++
-    }
-  }
-
-  return result
 }
 
 onMounted(async () => {
@@ -338,12 +452,3 @@ onMounted(async () => {
   await store.fetchScheduledAnalyses()
 })
 </script>
-
-<style scoped>
-.line-clamp-2 {
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-</style>
