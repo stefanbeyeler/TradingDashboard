@@ -28,6 +28,10 @@ export const useMarketStore = defineStore('market', () => {
   // Selected symbol
   const selectedSymbol = ref('BTCUSDT')
 
+  // Scheduled analyses for favorites
+  const scheduledAnalyses = ref([])
+  const schedulerStatus = ref({})
+
   // Getters - Category neutral
   const watchlistByChange = computed(() =>
     [...watchlist.value].sort((a, b) => (b.change_percent_24h || 0) - (a.change_percent_24h || 0))
@@ -181,6 +185,43 @@ export const useMarketStore = defineStore('market', () => {
     selectedSymbol.value = symbol
   }
 
+  // Scheduled analyses actions
+  async function fetchScheduledAnalyses() {
+    try {
+      const response = await api.getScheduledAnalyses()
+      scheduledAnalyses.value = response.analyses || []
+      schedulerStatus.value = response.status || {}
+      return response
+    } catch (e) {
+      console.error('Failed to fetch scheduled analyses:', e)
+      return { analyses: [], status: {} }
+    }
+  }
+
+  async function runScheduledAnalysesNow() {
+    isLoading.value = true
+    try {
+      const response = await api.runScheduledAnalyses()
+      scheduledAnalyses.value = response.analyses || []
+      return response
+    } catch (e) {
+      console.error('Failed to run scheduled analyses:', e)
+      throw e
+    } finally {
+      isLoading.value = false
+    }
+  }
+
+  async function fetchSchedulerStatus() {
+    try {
+      schedulerStatus.value = await api.getSchedulerStatus()
+      return schedulerStatus.value
+    } catch (e) {
+      console.error('Failed to fetch scheduler status:', e)
+      return {}
+    }
+  }
+
   return {
     // State
     watchlist,
@@ -198,6 +239,8 @@ export const useMarketStore = defineStore('market', () => {
     selectedSymbol,
     favoriteSymbols,
     symbolStats,
+    scheduledAnalyses,
+    schedulerStatus,
 
     // Getters
     watchlistByChange,
@@ -217,5 +260,8 @@ export const useMarketStore = defineStore('market', () => {
     fetchForecast,
     analyzeSymbol,
     setSelectedSymbol,
+    fetchScheduledAnalyses,
+    runScheduledAnalysesNow,
+    fetchSchedulerStatus,
   }
 })

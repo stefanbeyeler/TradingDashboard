@@ -15,6 +15,7 @@ from .services import (
     alphavantage_service,
     binance_service,
     news_service,
+    scheduler_service,
 )
 from .db import init_db, close_db
 
@@ -39,10 +40,15 @@ async def lifespan(app: FastAPI):
     else:
         logger.warning("Database connection failed - some features may be unavailable")
 
+    # Start the scheduler for periodic favorite analyses
+    await scheduler_service.start()
+    logger.info("Scheduler service started")
+
     yield
 
     # Cleanup
     logger.info("Shutting down TradingDashboard...")
+    await scheduler_service.stop()
     await close_db()
     await kitrading_service.close()
     await coingecko_service.close()

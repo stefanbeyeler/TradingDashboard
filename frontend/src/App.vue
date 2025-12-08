@@ -184,6 +184,7 @@ onMounted(async () => {
   await Promise.all([
     store.fetchDashboard(),
     store.fetchKISymbols(),
+    store.fetchScheduledAnalyses(),
   ])
 })
 </script>

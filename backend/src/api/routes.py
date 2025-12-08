@@ -11,6 +11,7 @@ from ..services import (
     alphavantage_service,
     binance_service,
     news_service,
+    scheduler_service,
 )
 from ..models import (
     MarketTicker,
@@ -1301,3 +1302,71 @@ async def restore_backup(
             records_restored=records_restored,
             errors=[f"Restore failed: {str(e)}"],
         )
+
+
+# ============================================================================
+# Scheduled Analyses (Dashboard Quick Analyses for Favorites)
+# ============================================================================
+
+@router.get("/scheduled-analyses")
+async def get_scheduled_analyses():
+    """Get the latest scheduled analyses for all favorite symbols."""
+    analyses = scheduler_service.get_latest_analyses()
+    return {
+        "analyses": analyses,
+        "status": scheduler_service.get_status(),
+    }
+
+
+@router.get("/scheduled-analyses/{symbol}")
+async def get_scheduled_analysis_for_symbol(symbol: str):
+    """Get the latest scheduled analysis for a specific symbol."""
+    analysis = scheduler_service.get_analysis_for_symbol(symbol)
+    if not analysis:
+        raise HTTPException(status_code=404, detail=f"No scheduled analysis found for {symbol}")
+    return analysis
+
+
+@router.post("/scheduled-analyses/run")
+async def run_scheduled_analyses():
+    """Manually trigger scheduled analyses for all favorite symbols."""
+    analyses = await scheduler_service.run_now()
+    return {
+        "success": True,
+        "analyzed_count": len(analyses),
+        "analyses": analyses,
+    }
+
+
+@router.get("/scheduler/status")
+async def get_scheduler_status():
+    """Get the current status of the scheduler."""
+    return scheduler_service.get_status()
+
+
+@router.post("/scheduler/start")
+async def start_scheduler():
+    """Start the scheduler if not running."""
+    if scheduler_service.is_running:
+        return {"message": "Scheduler is already running", "status": scheduler_service.get_status()}
+    await scheduler_service.start()
+    return {"message": "Scheduler started", "status": scheduler_service.get_status()}
+
+
+@router.post("/scheduler/stop")
+async def stop_scheduler():
+    """Stop the scheduler."""
+    if not scheduler_service.is_running:
+        return {"message": "Scheduler is not running", "status": scheduler_service.get_status()}
+    await scheduler_service.stop()
+    return {"message": "Scheduler stopped", "status": scheduler_service.get_status()}
+
+
+@router.put("/scheduler/interval")
+async def set_scheduler_interval(interval_minutes: int = Query(ge=5, le=1440)):
+    """Set the scheduler interval in minutes (5-1440)."""
+    scheduler_service.interval_minutes = interval_minutes
+    return {
+        "message": f"Scheduler interval set to {interval_minutes} minutes",
+        "status": scheduler_service.get_status(),
+    }

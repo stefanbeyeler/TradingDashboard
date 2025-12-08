@@ -126,4 +126,14 @@ export const restoreBackup = (backupData, options = {}) =>
     clear_existing: options.clearExisting ?? false,
   })
 
+// Scheduled Analyses (Favorite Symbol Quick Analyses)
+export const getScheduledAnalyses = () => api.get('/scheduled-analyses')
+export const getScheduledAnalysisForSymbol = (symbol) => api.get(`/scheduled-analyses/${symbol}`)
+export const runScheduledAnalyses = () => api.post('/scheduled-analyses/run')
+export const getSchedulerStatus = () => api.get('/scheduler/status')
+export const startScheduler = () => api.post('/scheduler/start')
+export const stopScheduler = () => api.post('/scheduler/stop')
+export const setSchedulerInterval = (intervalMinutes) =>
+  api.put('/scheduler/interval', null, { params: { interval_minutes: intervalMinutes } })
+
 export default api

@@ -4,6 +4,7 @@ from .coingecko_service import coingecko_service, CoinGeckoService
 from .alphavantage_service import alphavantage_service, AlphaVantageService
 from .binance_service import binance_service, BinanceService
 from .news_service import news_service, NewsService
+from .scheduler_service import scheduler_service, SchedulerService
 
 __all__ = [
     "kitrading_service",
@@ -16,4 +17,6 @@ __all__ = [
     "BinanceService",
     "news_service",
     "NewsService",
+    "scheduler_service",
+    "SchedulerService",
 ]
