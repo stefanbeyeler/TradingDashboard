@@ -47,6 +47,8 @@ export const queryRAG = (query, symbol = null, nResults = 5) =>
   api.get('/ki/rag/query', { params: { query, symbol, n_results: nResults } })
 export const getQueryLogs = (limit = 50, offset = 0, symbol = null) =>
   api.get('/ki/query-logs', { params: { limit, offset, symbol } })
+export const getLiveMarketData = (symbol) =>
+  api.get(`/ki/market-data/${symbol}`)
 
 // Crypto Markets
 export const getCryptoMarkets = (perPage = 50, page = 1) =>

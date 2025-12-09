@@ -485,6 +485,81 @@ class KITradingService:
             logger.error(f"Failed to refresh symbol {symbol_id}: {e}")
             return None
 
+    async def get_live_market_data(self, symbol: str) -> Optional[Dict[str, Any]]:
+        """Get live market data for a symbol including OHLC, RSI, ATR, spread."""
+        try:
+            client = await self._get_client()
+            response = await client.get(f"/symbol-info/{symbol}")
+            response.raise_for_status()
+            data = response.json()
+
+            # Extract data from the symbol-info response
+            ohlc_d1 = data.get("ohlc_d1", {})
+            ohlc_h1 = data.get("ohlc_h1", {})
+            price = data.get("price", {})
+            indicators = data.get("indicators", {})
+            pivot_points = data.get("pivot_points", {})
+            strength = data.get("strength", {})
+
+            return {
+                "symbol": symbol,
+                "timestamp": datetime.utcnow().isoformat(),
+                "last_candle_time": data.get("last_timestamp"),
+                "data_timestamp": data.get("data_timestamp"),
+                # Daily OHLC
+                "open": ohlc_d1.get("open"),
+                "high": ohlc_d1.get("high"),
+                "low": ohlc_d1.get("low"),
+                "close": ohlc_d1.get("close"),
+                # Hourly OHLC
+                "h1_open": ohlc_h1.get("open"),
+                "h1_high": ohlc_h1.get("high"),
+                "h1_low": ohlc_h1.get("low"),
+                "h1_close": ohlc_h1.get("close"),
+                # Price data
+                "bid": price.get("bid"),
+                "ask": price.get("ask"),
+                "spread": price.get("spread"),
+                # RSI
+                "rsi": indicators.get("rsi", {}).get("value"),
+                "rsi_signal": indicators.get("rsi", {}).get("signal"),
+                # ATR
+                "atr": indicators.get("atr", {}).get("value"),
+                # MACD
+                "macd": indicators.get("macd", {}).get("main_line"),
+                "macd_signal": indicators.get("macd", {}).get("signal_line"),
+                "macd_histogram": indicators.get("macd", {}).get("histogram"),
+                "macd_trend": indicators.get("macd", {}).get("trend"),
+                # Stochastic
+                "stochastic_k": indicators.get("stochastic", {}).get("k_line"),
+                "stochastic_d": indicators.get("stochastic", {}).get("d_line"),
+                "stochastic_signal": indicators.get("stochastic", {}).get("signal"),
+                # ADX
+                "adx": indicators.get("adx", {}).get("main_line"),
+                "adx_trend_strength": indicators.get("adx", {}).get("trend_strength"),
+                "adx_trend_direction": indicators.get("adx", {}).get("trend_direction"),
+                # Bollinger Bands
+                "bb_upper": indicators.get("bollinger_bands", {}).get("upper_band"),
+                "bb_middle": indicators.get("bollinger_bands", {}).get("middle_band"),
+                "bb_lower": indicators.get("bollinger_bands", {}).get("lower_band"),
+                "bb_position": indicators.get("bollinger_bands", {}).get("price_position"),
+                # MA100
+                "ma100": indicators.get("ma100", {}).get("value"),
+                # Ichimoku
+                "ichimoku_tk_signal": indicators.get("ichimoku", {}).get("tk_signal"),
+                "ichimoku_cloud_signal": indicators.get("ichimoku", {}).get("cloud_signal"),
+                # Pivot Points
+                "pivot_r1": pivot_points.get("r1"),
+                "pivot_s1": pivot_points.get("s1"),
+                # Strength
+                "strength_h4": strength.get("h4"),
+                "strength_d1": strength.get("d1"),
+                "strength_w1": strength.get("w1"),
+            }
+        except Exception as e:
+            logger.error(f"Failed to get live market data for {symbol}: {e}")
+            return None
+
 
 # Singleton instance
 kitrading_service = KITradingService()

@@ -31,6 +31,142 @@
           </div>
         </div>
       </div>
+
+      <!-- Live Market Data (inline below symbol selector) -->
+      <div v-if="liveData && !recommendation" class="mt-4 pt-4 border-t border-dark-300">
+        <div class="flex items-center justify-between mb-3">
+          <div class="flex items-center gap-2">
+            <span class="text-sm text-gray-400">Live Daten für</span>
+            <span class="text-white font-semibold">{{ form.symbol }}</span>
+            <button
+              @click="refreshLiveData"
+              :disabled="isLoadingLiveData"
+              class="p-1.5 text-gray-400 hover:text-white hover:bg-dark-300 rounded transition-colors"
+              title="Daten aktualisieren"
+            >
+              <svg
+                class="w-4 h-4"
+                :class="{ 'animate-spin': isLoadingLiveData }"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+              </svg>
+            </button>
+          </div>
+          <span v-if="liveData.last_candle_time" class="text-xs text-gray-500">
+            {{ formatLiveTimestamp(liveData.last_candle_time) }}
+          </span>
+        </div>
+
+        <!-- Row 1: Price Data -->
+        <div class="grid grid-cols-3 md:grid-cols-6 gap-2 mb-2">
+          <!-- Bid/Ask -->
+          <div class="bg-dark-300/50 p-2 rounded">
+            <span class="text-xs text-gray-500 block">Bid / Ask</span>
+            <div class="flex gap-1 text-xs font-mono">
+              <span class="text-green-400">{{ formatCompactPrice(liveData.bid) }}</span>
+              <span class="text-gray-500">/</span>
+              <span class="text-red-400">{{ formatCompactPrice(liveData.ask) }}</span>
+            </div>
+          </div>
+          <!-- Spread -->
+          <div class="bg-dark-300/50 p-2 rounded">
+            <span class="text-xs text-gray-500 block">Spread</span>
+            <span class="text-sm font-mono text-yellow-400">{{ formatSpread(liveData.spread) }}</span>
+          </div>
+          <!-- High (D1) -->
+          <div class="bg-dark-300/50 p-2 rounded">
+            <span class="text-xs text-gray-500 block">High (D1)</span>
+            <span class="text-sm font-mono text-green-400">{{ formatCompactPrice(liveData.high) }}</span>
+          </div>
+          <!-- Low (D1) -->
+          <div class="bg-dark-300/50 p-2 rounded">
+            <span class="text-xs text-gray-500 block">Low (D1)</span>
+            <span class="text-sm font-mono text-red-400">{{ formatCompactPrice(liveData.low) }}</span>
+          </div>
+          <!-- Close -->
+          <div class="bg-dark-300/50 p-2 rounded">
+            <span class="text-xs text-gray-500 block">Close</span>
+            <span class="text-sm font-mono text-white">{{ formatCompactPrice(liveData.close) }}</span>
+          </div>
+          <!-- ATR -->
+          <div class="bg-dark-300/50 p-2 rounded">
+            <span class="text-xs text-gray-500 block">ATR (D1)</span>
+            <span class="text-sm font-mono text-blue-400">{{ formatCompactPrice(liveData.atr) }}</span>
+          </div>
+        </div>
+
+        <!-- Row 2: Technical Indicators -->
+        <div class="grid grid-cols-3 md:grid-cols-6 gap-2">
+          <!-- RSI(14) -->
+          <div class="bg-dark-300/50 p-2 rounded">
+            <span class="text-xs text-gray-500 block">RSI(14)</span>
+            <div class="flex items-center gap-1">
+              <span class="text-sm font-mono" :class="getRsiClass(liveData.rsi)">
+                {{ liveData.rsi?.toFixed(1) || '-' }}
+              </span>
+              <span v-if="liveData.rsi_signal" class="text-xs px-1 rounded" :class="getSignalBadgeClass(liveData.rsi_signal)">
+                {{ liveData.rsi_signal }}
+              </span>
+            </div>
+          </div>
+          <!-- MACD -->
+          <div class="bg-dark-300/50 p-2 rounded">
+            <span class="text-xs text-gray-500 block">MACD</span>
+            <div class="flex items-center gap-1">
+              <span class="text-sm font-mono" :class="liveData.macd_trend === 'bullish' ? 'text-green-400' : 'text-red-400'">
+                {{ liveData.macd?.toFixed(2) || '-' }}
+              </span>
+              <span v-if="liveData.macd_trend" class="text-xs px-1 rounded" :class="getTrendBadgeClass(liveData.macd_trend)">
+                {{ liveData.macd_trend }}
+              </span>
+            </div>
+          </div>
+          <!-- Stochastic -->
+          <div class="bg-dark-300/50 p-2 rounded">
+            <span class="text-xs text-gray-500 block">Stochastic</span>
+            <div class="flex items-center gap-1">
+              <span class="text-sm font-mono text-white">
+                {{ liveData.stochastic_k?.toFixed(1) || '-' }}
+              </span>
+              <span v-if="liveData.stochastic_signal" class="text-xs px-1 rounded" :class="getSignalBadgeClass(liveData.stochastic_signal)">
+                {{ liveData.stochastic_signal }}
+              </span>
+            </div>
+          </div>
+          <!-- ADX -->
+          <div class="bg-dark-300/50 p-2 rounded">
+            <span class="text-xs text-gray-500 block">ADX</span>
+            <div class="flex items-center gap-1">
+              <span class="text-sm font-mono text-white">{{ liveData.adx?.toFixed(1) || '-' }}</span>
+              <span v-if="liveData.adx_trend_strength" class="text-xs px-1 rounded" :class="getStrengthBadgeClass(liveData.adx_trend_strength)">
+                {{ liveData.adx_trend_strength }}
+              </span>
+            </div>
+          </div>
+          <!-- BB Position -->
+          <div class="bg-dark-300/50 p-2 rounded">
+            <span class="text-xs text-gray-500 block">BB Position</span>
+            <span class="text-sm font-mono text-yellow-400">{{ formatBBPosition(liveData.bb_position) }}</span>
+          </div>
+          <!-- MA100 -->
+          <div class="bg-dark-300/50 p-2 rounded">
+            <span class="text-xs text-gray-500 block">MA100</span>
+            <span class="text-sm font-mono text-white">{{ formatCompactPrice(liveData.ma100) }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Loading Live Data -->
+      <div v-if="isLoadingLiveData" class="mt-4 pt-4 border-t border-dark-300">
+        <div class="flex items-center gap-2 text-gray-400 text-sm">
+          <div class="animate-spin text-base">&#8635;</div>
+          <span>Lade Live-Daten für {{ form.symbol }}...</span>
+        </div>
+      </div>
+
       <div class="flex gap-3 mt-4">
         <button @click="runAnalysis" :disabled="isLoading" class="btn btn-primary">
           {{ isLoading ? 'Analyzing...' : 'Run Analysis' }}
@@ -348,7 +484,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, reactive } from 'vue'
+import { ref, computed, onMounted, reactive, watch } from 'vue'
 import { useMarketStore } from '@/stores/market'
 import * as api from '@/services/api'
 
@@ -363,6 +499,36 @@ const form = reactive({
 
 const recommendation = ref(null)
 const savedAnalyses = ref([])
+const liveData = ref(null)
+const isLoadingLiveData = ref(false)
+
+// Watch for symbol changes and load live data
+watch(() => form.symbol, async (newSymbol) => {
+  if (newSymbol) {
+    recommendation.value = null  // Clear full recommendation
+    await loadLiveMarketData(newSymbol)
+  }
+})
+
+async function loadLiveMarketData(symbol) {
+  isLoadingLiveData.value = true
+  liveData.value = null
+  try {
+    const result = await api.getLiveMarketData(symbol)
+    liveData.value = result
+  } catch (e) {
+    console.error('Failed to load live market data:', e)
+    liveData.value = null
+  } finally {
+    isLoadingLiveData.value = false
+  }
+}
+
+function refreshLiveData() {
+  if (form.symbol) {
+    loadLiveMarketData(form.symbol)
+  }
+}
 
 const kiSymbols = computed(() => store.kiSymbols)
 const strategies = computed(() => store.kiStrategies)
@@ -479,6 +645,164 @@ function formatTimestamp(ts) {
   if (!ts) return ''
   const date = new Date(ts)
   return date.toLocaleString('de-DE')
+}
+
+// Quick Preview Helper Functions
+function getDirectionClass(direction) {
+  if (direction === 'LONG') return 'bg-green-500/20 text-green-400'
+  if (direction === 'SHORT') return 'bg-red-500/20 text-red-400'
+  return 'bg-gray-500/20 text-gray-400'
+}
+
+function getConfidenceTextClass(score) {
+  if (score >= 70) return 'text-green-400'
+  if (score >= 50) return 'text-yellow-400'
+  return 'text-red-400'
+}
+
+function getRsiClass(rsi) {
+  if (!rsi) return 'text-gray-500'
+  if (rsi >= 70) return 'text-red-400'
+  if (rsi <= 30) return 'text-green-400'
+  return 'text-white'
+}
+
+function getRsiBarClass(rsi) {
+  if (!rsi) return 'bg-gray-500'
+  if (rsi >= 70) return 'bg-red-500'
+  if (rsi <= 30) return 'bg-green-500'
+  return 'bg-blue-500'
+}
+
+function getRsiZone(rsi) {
+  if (!rsi) return '-'
+  if (rsi >= 70) return 'Overbought'
+  if (rsi <= 30) return 'Oversold'
+  return 'Neutral'
+}
+
+function getRsiZoneClass(rsi) {
+  if (!rsi) return 'bg-gray-500/20 text-gray-400'
+  if (rsi >= 70) return 'bg-red-500/20 text-red-400'
+  if (rsi <= 30) return 'bg-green-500/20 text-green-400'
+  return 'bg-blue-500/20 text-blue-400'
+}
+
+function getTrendClass(trend) {
+  if (!trend) return 'text-gray-500'
+  const t = trend.toLowerCase()
+  if (t.includes('uptrend') || t.includes('bullish')) return 'text-green-400'
+  if (t.includes('downtrend') || t.includes('bearish')) return 'text-red-400'
+  return 'text-yellow-400'
+}
+
+function getTrendIcon(trend) {
+  if (!trend) return '—'
+  const t = trend.toLowerCase()
+  if (t.includes('strong') && t.includes('uptrend')) return '⬆'
+  if (t.includes('uptrend')) return '↗'
+  if (t.includes('strong') && t.includes('downtrend')) return '⬇'
+  if (t.includes('downtrend')) return '↘'
+  return '→'
+}
+
+function getTrendIconClass(trend) {
+  if (!trend) return 'text-gray-500'
+  const t = trend.toLowerCase()
+  if (t.includes('uptrend')) return 'text-green-400'
+  if (t.includes('downtrend')) return 'text-red-400'
+  return 'text-yellow-400'
+}
+
+function formatTrendShort(trend) {
+  if (!trend) return '-'
+  return trend
+    .replace('Strong_', 'Strong ')
+    .replace('_', ' ')
+    .replace('uptrend', 'Up')
+    .replace('downtrend', 'Down')
+    .replace('Uptrend', 'Up')
+    .replace('Downtrend', 'Down')
+}
+
+function getSignalClass(signal) {
+  if (!signal) return 'bg-gray-500/20 text-gray-400'
+  const s = signal.toUpperCase()
+  if (s === 'BUY' || s === 'STRONG_BUY') return 'bg-green-500/20 text-green-400'
+  if (s === 'SELL' || s === 'STRONG_SELL') return 'bg-red-500/20 text-red-400'
+  return 'bg-yellow-500/20 text-yellow-400'
+}
+
+function formatCompactPrice(value) {
+  if (value === null || value === undefined) return '-'
+  if (typeof value === 'string') return value
+  if (typeof value !== 'number' || isNaN(value)) return '-'
+  if (Math.abs(value) >= 10000) return value.toFixed(0)
+  if (Math.abs(value) >= 1000) return value.toFixed(1)
+  if (Math.abs(value) >= 1) return value.toFixed(2)
+  if (Math.abs(value) >= 0.01) return value.toFixed(4)
+  return value.toFixed(6)
+}
+
+function formatLiveTimestamp(ts) {
+  if (!ts) return '-'
+  const date = new Date(ts)
+  return date.toLocaleString('de-DE', {
+    day: '2-digit',
+    month: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+}
+
+function formatSpread(value) {
+  if (value === null || value === undefined) return '-'
+  if (typeof value !== 'number' || isNaN(value)) return '-'
+  if (value < 0.0001) return value.toFixed(6)
+  if (value < 0.01) return value.toFixed(4)
+  return value.toFixed(2)
+}
+
+function formatVolume(value) {
+  if (value === null || value === undefined) return '-'
+  if (typeof value !== 'number' || isNaN(value)) return '-'
+  if (value >= 1000000000) return (value / 1000000000).toFixed(2) + 'B'
+  if (value >= 1000000) return (value / 1000000).toFixed(2) + 'M'
+  if (value >= 1000) return (value / 1000).toFixed(1) + 'K'
+  return value.toFixed(0)
+}
+
+function getSignalBadgeClass(signal) {
+  if (!signal) return 'bg-gray-500/20 text-gray-400'
+  const s = signal.toLowerCase()
+  if (s === 'overbought' || s === 'bearish') return 'bg-red-500/20 text-red-400'
+  if (s === 'oversold' || s === 'bullish') return 'bg-green-500/20 text-green-400'
+  return 'bg-gray-500/20 text-gray-400'
+}
+
+function getTrendBadgeClass(trend) {
+  if (!trend) return 'bg-gray-500/20 text-gray-400'
+  const t = trend.toLowerCase()
+  if (t === 'bullish') return 'bg-green-500/20 text-green-400'
+  if (t === 'bearish') return 'bg-red-500/20 text-red-400'
+  return 'bg-yellow-500/20 text-yellow-400'
+}
+
+function getStrengthBadgeClass(strength) {
+  if (!strength) return 'bg-gray-500/20 text-gray-400'
+  const s = strength.toLowerCase()
+  if (s === 'strong') return 'bg-green-500/20 text-green-400'
+  if (s === 'weak') return 'bg-red-500/20 text-red-400'
+  return 'bg-yellow-500/20 text-yellow-400'
+}
+
+function formatBBPosition(position) {
+  if (!position) return '-'
+  const p = position.toLowerCase().replace(/_/g, ' ')
+  if (p === 'within bands') return 'Within'
+  if (p === 'above upper') return 'Above'
+  if (p === 'below lower') return 'Below'
+  return p
 }
 
 function printAnalysis() {
@@ -615,8 +939,17 @@ function printAnalysis() {
 onMounted(async () => {
   await store.fetchKIStrategies()
   await loadSavedAnalyses()
-  if (store.kiSymbols.length > 0) {
+
+  // Use selected symbol from store if available, otherwise first KI symbol
+  if (store.selectedSymbol && store.kiSymbols.includes(store.selectedSymbol)) {
+    form.symbol = store.selectedSymbol
+  } else if (store.kiSymbols.length > 0) {
     form.symbol = store.kiSymbols[0]
+  }
+
+  // Load live market data for initial symbol
+  if (form.symbol) {
+    await loadLiveMarketData(form.symbol)
   }
 })
 </script>

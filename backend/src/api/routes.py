@@ -284,6 +284,15 @@ async def get_query_logs(
     )
 
 
+@router.get("/ki/market-data/{symbol}")
+async def get_live_market_data(symbol: str) -> Dict[str, Any]:
+    """Get live market data for a symbol including last OHLC, RSI, ATR, spread."""
+    data = await kitrading_service.get_live_market_data(symbol)
+    if not data:
+        raise HTTPException(status_code=404, detail=f"Market data not available for {symbol}")
+    return data
+
+
 # ============================================================================
 # Symbol Management (via KITradingModel)
 # ============================================================================

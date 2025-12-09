@@ -249,8 +249,8 @@ const router = useRouter()
 const isRefreshing = ref(false)
 
 // Sorting state
-const sortKey = ref('direction')
-const sortDirection = ref('asc')
+const sortKey = ref('confidence_score')
+const sortDirection = ref('desc')
 
 // Column definitions
 const columns = [
